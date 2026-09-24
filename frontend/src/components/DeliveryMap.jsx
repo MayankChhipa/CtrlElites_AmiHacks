@@ -10,7 +10,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Custom colored HTML marker icons
+// Custom warm-themed HTML marker icons
 const createCustomIcon = (color, label) => {
   return L.divIcon({
     className: 'custom-leaflet-icon',
@@ -19,28 +19,28 @@ const createCustomIcon = (color, label) => {
         background-color: ${color};
         color: white;
         border-radius: 50%;
-        width: 32px;
-        height: 32px;
+        width: 34px;
+        height: 34px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        font-size: 13px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        border: 2px solid white;
+        font-size: 14px;
+        box-shadow: 0 4px 12px rgba(124, 45, 18, 0.25);
+        border: 2px solid #FFFDF6;
       ">
         ${label}
       </div>
     `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -18],
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+    popupAnchor: [0, -20],
   });
 };
 
-const donorIcon = createCustomIcon('#10b981', '🍲');
-const ngoIcon = createCustomIcon('#a855f7', '🏢');
-const driverIcon = createCustomIcon('#3b82f6', '🚚');
+const donorIcon = createCustomIcon('#059669', '🍲');
+const ngoIcon = createCustomIcon('#7c2d12', '🏢');
+const driverIcon = createCustomIcon('#ea580c', '🚚');
 
 // Helper component to auto-fit map view to route and markers
 const MapBoundsUpdater = ({ pickupLatLng, dropoffLatLng, driverLatLng, polylinePositions }) => {
@@ -90,12 +90,12 @@ const DeliveryMap = ({
   }
 
   return (
-    <div className="w-full rounded-2xl overflow-hidden border border-slate-700/80 shadow-xl" style={{ height }}>
+    <div className="w-full rounded-3xl overflow-hidden border border-orange-200/80 shadow-lg shadow-orange-900/5 bg-[#FFFDF6]" style={{ height }}>
       <MapContainer
         center={center}
         zoom={13}
         scrollWheelZoom={false}
-        style={{ height: '100%', width: '100%', backgroundColor: '#0f172a' }}
+        style={{ height: '100%', width: '100%', backgroundColor: '#fffdf6' }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -112,9 +112,9 @@ const DeliveryMap = ({
         {pickupLatLng && (
           <Marker position={pickupLatLng} icon={donorIcon}>
             <Popup>
-              <div className="text-slate-900 font-sans">
-                <strong className="block text-emerald-700">Pickup Location (Donor)</strong>
-                <span className="text-xs">Prepared meals ready for transport</span>
+              <div className="text-stone-800 font-sans p-0.5">
+                <strong className="block text-emerald-800 font-black text-xs">Pickup Location (Donor)</strong>
+                <span className="text-[11px] text-stone-600 font-medium">Prepared meals ready for transport</span>
               </div>
             </Popup>
           </Marker>
@@ -123,9 +123,9 @@ const DeliveryMap = ({
         {dropoffLatLng && (
           <Marker position={dropoffLatLng} icon={ngoIcon}>
             <Popup>
-              <div className="text-slate-900 font-sans">
-                <strong className="block text-purple-700">Dropoff Location (Shelter)</strong>
-                <span className="text-xs">Community kitchen destination</span>
+              <div className="text-stone-800 font-sans p-0.5">
+                <strong className="block text-red-950 font-black text-xs">Dropoff Location (Shelter)</strong>
+                <span className="text-[11px] text-stone-600 font-medium">Community kitchen destination</span>
               </div>
             </Popup>
           </Marker>
@@ -134,9 +134,9 @@ const DeliveryMap = ({
         {driverLatLng && (
           <Marker position={driverLatLng} icon={driverIcon}>
             <Popup>
-              <div className="text-slate-900 font-sans">
-                <strong className="block text-blue-700">Driver Courier</strong>
-                <span className="text-xs">Active rescue delivery vehicle</span>
+              <div className="text-stone-800 font-sans p-0.5">
+                <strong className="block text-orange-700 font-black text-xs">Courier Driver</strong>
+                <span className="text-[11px] text-stone-600 font-medium">Active rescue delivery vehicle</span>
               </div>
             </Popup>
           </Marker>
@@ -146,10 +146,10 @@ const DeliveryMap = ({
           <Polyline
             positions={polylinePositions}
             pathOptions={{
-              color: '#10b981',
+              color: '#ea580c',
               weight: 4,
               dashArray: '8, 8',
-              opacity: 0.8,
+              opacity: 0.85,
             }}
           />
         )}

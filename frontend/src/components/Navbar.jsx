@@ -31,15 +31,15 @@ const Navbar = () => {
   const getRoleBadge = (role) => {
     switch (role) {
       case 'DONOR':
-        return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+        return 'bg-emerald-100 text-emerald-900 border-emerald-300';
       case 'NGO':
-        return 'bg-purple-500/20 text-purple-300 border-purple-500/40';
+        return 'bg-amber-100 text-amber-900 border-amber-300';
       case 'DRIVER':
-        return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+        return 'bg-orange-100 text-orange-950 border-orange-300';
       case 'ADMIN':
-        return 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+        return 'bg-rose-100 text-rose-950 border-rose-300';
       default:
-        return 'bg-slate-700 text-slate-300 border-slate-600';
+        return 'bg-stone-100 text-stone-700 border-stone-300';
     }
   };
 
@@ -77,29 +77,28 @@ const Navbar = () => {
   const navLinks = getNavLinks();
 
   return (
-    <nav className="sticky top-0 z-40 glass-panel border-b border-slate-800 bg-slate-900/80 backdrop-blur-md">
+    <nav className="sticky top-0 z-40 bg-[#FFFDF6]/95 backdrop-blur-md border-b border-orange-200/80 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Brand Logo */}
-          <div className="flex items-center gap-3">
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform">
-                <HeartHandshake className="w-6 h-6 text-white" />
+        <div className="flex items-center justify-between h-20">
+          {/* Brand Logo & Role Badge */}
+          <div className="flex items-center gap-4">
+            <Link to="/" className="flex items-center gap-3 group">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-red-600 to-orange-500 flex items-center justify-center shadow-md shadow-red-600/20 group-hover:scale-105 transition-transform">
+                <HeartHandshake className="w-6 h-6 text-white stroke-[2.5]" />
               </div>
               <div className="flex flex-col">
-                <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
+                <span className="font-extrabold text-xl tracking-tight text-red-950">
                   Surplus-to-Shelter
                 </span>
-                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
+                <span className="text-[10px] text-stone-500 uppercase tracking-widest font-bold">
                   Zero Hunger Rescue
                 </span>
               </div>
             </Link>
 
-            {/* Role Badge */}
             {user && (
               <span
-                className={`hidden md:inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full border ${getRoleBadge(
+                className={`hidden lg:inline-flex items-center text-xs font-bold px-3 py-1 rounded-full border ${getRoleBadge(
                   user.role
                 )}`}
               >
@@ -110,7 +109,7 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           {isAuthenticated && (
-            <div className="hidden md:flex items-center gap-1">
+            <div className="hidden md:flex items-center gap-2">
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = location.pathname === link.path;
@@ -118,63 +117,63 @@ const Navbar = () => {
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                       isActive
-                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm shadow-emerald-500/10'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                        ? 'bg-orange-100 text-red-950 border border-orange-300/80 shadow-sm'
+                        : 'text-stone-600 hover:text-red-950 hover:bg-orange-50'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
-                    {link.name}
+                    <Icon className="w-4 h-4 stroke-[2]" />
+                    <span>{link.name}</span>
                   </Link>
                 );
               })}
             </div>
           )}
 
-          {/* Right Side: Notification & User Actions */}
-          <div className="flex items-center gap-3">
+          {/* Right Side Actions & User Info */}
+          <div className="flex items-center gap-4">
             {isAuthenticated ? (
               <>
                 <NotificationDropdown />
 
-                <div className="hidden sm:flex flex-col text-right">
-                  <span className="text-xs font-medium text-slate-200">{user?.name}</span>
-                  <span className="text-[10px] text-slate-400">{user?.email}</span>
+                <div className="hidden sm:flex flex-col text-right pl-2 border-l border-orange-200/60">
+                  <span className="text-sm font-bold text-red-950">{user?.name}</span>
+                  <span className="text-xs text-stone-500 font-medium">{user?.email}</span>
                 </div>
 
                 <button
                   onClick={handleLogout}
-                  className="p-2 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition-colors"
+                  className="p-2.5 text-stone-500 hover:text-rose-700 rounded-xl hover:bg-rose-100 transition-colors"
                   title="Log out"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-5 h-5 stroke-[2]" />
                 </button>
               </>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Link
                   to="/login"
-                  className="px-4 py-2 text-sm font-medium text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                  className="px-5 py-2.5 text-sm font-bold text-stone-700 hover:text-red-950 hover:bg-orange-50 rounded-xl transition-colors"
                 >
                   Log in
                 </Link>
                 <Link
                   to="/register"
-                  className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shadow-md shadow-emerald-600/30 transition-all hover:scale-105"
+                  className="px-5 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-md shadow-red-600/20 transition-all active:scale-95"
                 >
                   Register
                 </Link>
               </div>
             )}
 
-            {/* Mobile menu button */}
+            {/* Mobile Menu Button */}
             {isAuthenticated && (
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                className="md:hidden p-2.5 rounded-xl text-stone-600 hover:text-red-950 hover:bg-orange-100"
               >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {mobileMenuOpen ? <X className="w-6 h-6 stroke-[2]" /> : <Menu className="w-6 h-6 stroke-[2]" />}
               </button>
             )}
           </div>
@@ -183,10 +182,13 @@ const Navbar = () => {
 
       {/* Mobile Menu Dropdown */}
       {isAuthenticated && mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-800 px-4 pt-2 pb-4 space-y-1 bg-slate-900/95">
-          <div className="py-2 mb-2 border-b border-slate-800 flex items-center justify-between">
-            <span className="text-sm font-semibold text-slate-200">{user?.name}</span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${getRoleBadge(user?.role)}`}>
+        <div className="md:hidden border-t border-orange-200 px-6 py-4 space-y-2 bg-[#FFFDF6] shadow-xl">
+          <div className="pb-3 border-b border-orange-100 flex items-center justify-between">
+            <div>
+              <div className="text-sm font-bold text-red-950">{user?.name}</div>
+              <div className="text-xs text-stone-500">{user?.email}</div>
+            </div>
+            <span className={`text-xs font-bold px-3 py-1 rounded-full border ${getRoleBadge(user?.role)}`}>
               {user?.role}
             </span>
           </div>
@@ -198,13 +200,13 @@ const Navbar = () => {
                 key={link.path}
                 to={link.path}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-base font-medium ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
                   isActive
-                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    ? 'bg-orange-100 text-red-950 border border-orange-300'
+                    : 'text-stone-700 hover:bg-orange-50 hover:text-red-950'
                 }`}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="w-5 h-5 stroke-2" />
                 {link.name}
               </Link>
             );

@@ -26,34 +26,39 @@ const AdminDeliveries = () => {
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="min-h-screen bg-[#FFF3C7] text-[#5A1A12] px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <div className="flex items-center justify-between">
-        <Link to="/admin" className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors">
+        <Link to="/admin" className="flex items-center gap-1.5 text-xs text-[#8A5A4A] hover:text-[#5A1A12] transition-colors">
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Administration Overview</span>
         </Link>
       </div>
 
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-white">Active Fleet Monitoring</h1>
-        <p className="text-slate-400 text-sm mt-1">
+      <div className="flex items-start gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-[#D92D20] text-[#FFF8E7] flex items-center justify-center font-black text-lg shadow-lg shadow-[#D92D20]/25 flex-shrink-0">
+          FR
+        </div>
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#5A1A12]">Active Fleet Monitoring</h1>
+        <p className="text-[#8A5A4A] text-sm mt-1">
           Real-time visibility into all active delivery missions across the city.
         </p>
+        </div>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm">
+        <div className="p-4 rounded-2xl bg-[#FFF0EB] border border-[#E8A08A] text-[#C62828] text-sm">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="p-12 text-center text-slate-400">Loading active deliveries...</div>
+        <div className="bg-[#FFF8E7] shadow-[0_12px_32px_rgba(183,96,42,0.12)] p-12 rounded-3xl text-center text-[#8A5A4A] border border-[#E8C98B]">Loading active deliveries...</div>
       ) : deliveries.length === 0 ? (
-        <div className="glass-panel p-12 rounded-3xl text-center border border-slate-800 space-y-3">
-          <Truck className="w-12 h-12 text-slate-600 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-300">No deliveries currently in transit</h3>
-          <p className="text-slate-400 text-sm max-w-sm mx-auto">
+        <div className="bg-[#FFF8E7] shadow-[0_12px_32px_rgba(183,96,42,0.12)] p-12 rounded-3xl text-center border border-[#E8C98B] space-y-3">
+          <Truck className="w-12 h-12 text-[#B9795E] mx-auto" />
+          <h3 className="text-lg font-bold text-[#6B3A2A]">No deliveries currently in transit</h3>
+          <p className="text-[#8A5A4A] text-sm max-w-sm mx-auto">
             When drivers claim matched food donations, they will appear here with live tracking telemetry.
           </p>
         </div>
@@ -62,47 +67,47 @@ const AdminDeliveries = () => {
           {deliveries.map((del) => (
             <div
               key={del._id}
-              className="glass-panel rounded-3xl p-6 border border-slate-700/80 space-y-4 flex flex-col justify-between"
+              className="bg-[#FFF8E7] shadow-[0_12px_32px_rgba(183,96,42,0.12)] rounded-3xl p-6 border border-[#E8C98B] space-y-4 flex flex-col justify-between"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#FFE0B2] text-[#C2410C] border border-[#E8A05B]">
                     {del.status.replace(/_/g, ' ')}
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-[#8A5A4A]">
                     {del.routeSummary?.distanceKm ? `${del.routeSummary.distanceKm} km` : 'Active'}
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-base text-white">{del.donationId?.title || 'Surplus Food'}</h3>
-                  <div className="text-xs font-semibold text-emerald-400 mt-0.5">
+                  <h3 className="font-bold text-base text-[#5A1A12]">{del.donationId?.title || 'Surplus Food'}</h3>
+                  <div className="text-xs font-semibold text-[#D92D20] mt-0.5">
                     Courier: {del.driverId?.name || 'Assigned Driver'}
                   </div>
                 </div>
 
-                <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-2 text-xs">
+                <div className="p-3 bg-[#FFF8E7] rounded-2xl border border-[#E8C98B] space-y-2 text-xs">
                   <div className="flex items-start gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <MapPin className="w-3.5 h-3.5 text-[#D92D20] flex-shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-[10px] uppercase text-slate-500 block">Pickup</span>
-                      <span className="text-white font-medium">{del.donorId?.name}</span>
-                      <span className="text-slate-400 block truncate text-[11px]">{del.donorId?.address?.formattedAddress || 'Origin'}</span>
+                      <span className="text-[10px] uppercase text-[#9A6957] block">Pickup</span>
+                      <span className="text-[#5A1A12] font-medium">{del.donorId?.name}</span>
+                      <span className="text-[#8A5A4A] block truncate text-[11px]">{del.donorId?.address?.formattedAddress || 'Origin'}</span>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2 pt-1 border-t border-slate-800">
-                    <Building2 className="w-3.5 h-3.5 text-purple-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-2 pt-1 border-t border-[#E8C98B]/70">
+                    <Building2 className="w-3.5 h-3.5 text-[#B23A48] flex-shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-[10px] uppercase text-slate-500 block">Dropoff</span>
-                      <span className="text-white font-medium">{del.ngoId?.name}</span>
-                      <span className="text-slate-400 block truncate text-[11px]">{del.ngoId?.address?.formattedAddress || 'Shelter'}</span>
+                      <span className="text-[10px] uppercase text-[#9A6957] block">Dropoff</span>
+                      <span className="text-[#5A1A12] font-medium">{del.ngoId?.name}</span>
+                      <span className="text-[#8A5A4A] block truncate text-[11px]">{del.ngoId?.address?.formattedAddress || 'Shelter'}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="text-[11px] text-slate-400 flex items-center justify-between pt-2 border-t border-slate-800">
+              <div className="text-[11px] text-[#8A5A4A] flex items-center justify-between pt-2 border-t border-[#E8C98B]">
                 <span>Vehicle: {del.driverId?.driverProfile?.vehicleType || 'Courier'}</span>
                 <span>Claimed {new Date(del.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               </div>

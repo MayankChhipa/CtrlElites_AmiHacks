@@ -34,49 +34,71 @@ const AdminDonations = () => {
 
   const getStatusBadge = (status) => {
     const map = {
-      PENDING_MATCH: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
-      MATCHED: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
-      DRIVER_ASSIGNED: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
-      PICKED_UP: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
-      IN_TRANSIT: 'bg-teal-500/20 text-teal-300 border-teal-500/40',
-      DELIVERED: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
-      VERIFIED: 'bg-emerald-600/30 text-emerald-200 border-emerald-500',
-      EXPIRED: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
-      CANCELLED: 'bg-slate-700 text-slate-300 border-slate-600',
+      PENDING_MATCH: 'bg-[#FFE0B2] text-[#C2410C] border-[#E8A05B]',
+      MATCHED: 'bg-[#F6D7D0] text-[#B23A48] border-[#D99A9A]',
+      DRIVER_ASSIGNED: 'bg-[#F0D7DF] text-[#8B3A62] border-[#C89AAD]',
+      PICKED_UP: 'bg-[#FFE1C7] text-[#D45A2A] border-cyan-500/40',
+      IN_TRANSIT: 'bg-[#FFE0C2] text-[#C2410C] border-teal-500/40',
+      DELIVERED: 'bg-[#FFD8CC] text-[#D92D20] border-[#E88B72]',
+      VERIFIED: 'bg-[#FFC7BD] text-[#B91C1C] border-[#D92D20]',
+      EXPIRED: 'bg-[#FFD1C7] text-[#C62828] border-[#E8A08A]',
+      CANCELLED: 'bg-[#F1D9A8] text-[#6B3A2A] border-[#D9B97D]',
     };
-    return map[status] || 'bg-slate-700 text-slate-300';
+    return map[status] || 'bg-[#F1D9A8] text-[#6B3A2A]';
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="min-h-screen bg-[#FFF3C7] text-[#5A1A12] px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <div className="flex items-center justify-between">
-        <Link to="/admin" className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors">
+        <Link to="/admin" className="flex items-center gap-1.5 text-xs text-[#8A5A4A] hover:text-[#5A1A12] transition-colors">
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Administration Overview</span>
         </Link>
       </div>
 
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-white">Global Surplus Pipeline</h1>
-        <p className="text-slate-400 text-sm mt-1">
+      <div className="flex items-start justify-between gap-6">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#D92D20] text-[#FFF8E7] flex items-center justify-center font-black text-lg shadow-lg shadow-[#D92D20]/25 flex-shrink-0">
+            FR
+          </div>
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-[#5A1A12]">Global Surplus Pipeline</h1>
+        <p className="text-[#8A5A4A] text-sm mt-1">
           Inspect all food donations created on the network and filter by lifecycle status or category.
         </p>
+          </div>
+        </div>
+
+        <div className="hidden sm:flex items-center gap-3 bg-[#FFF8E7] border border-[#E8C98B] rounded-3xl px-4 py-3 shadow-[0_8px_24px_rgba(183,96,42,0.10)]">
+          <div className="relative w-12 h-12 rounded-full bg-[#FFD9B8] border-2 border-[#D92D20] flex items-center justify-center overflow-hidden">
+            <div className="absolute top-1 w-7 h-5 bg-[#5A1A12] rounded-t-full"></div>
+            <div className="mt-1 flex gap-1.5">
+              <span className="w-1.5 h-2.5 bg-[#5A1A12] rounded-full"></span>
+              <span className="w-1.5 h-2.5 bg-[#5A1A12] rounded-full"></span>
+            </div>
+            <div className="absolute bottom-1.5 w-5 h-1 rounded-full bg-[#D92D20]"></div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-wider font-black text-[#D92D20]">Food Rescue</div>
+            <div className="text-xs font-bold text-[#6B3A2A]">Every meal matters ✦</div>
+          </div>
+        </div>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm">
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-[#C62828] text-sm">
           {error}
         </div>
       )}
 
       {/* Filter Bar */}
-      <div className="glass-panel p-4 rounded-2xl border border-slate-700/80 flex flex-wrap items-center gap-4">
+      <div className="bg-[#FFF8E7] shadow-[0_10px_30px_rgba(183,96,42,0.12)] p-4 rounded-3xl border border-[#E8C98B] flex flex-wrap items-center gap-4">
         <div>
-          <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Status Filter</label>
+          <label className="text-[10px] uppercase font-bold text-[#8A5A4A] block mb-1">Status Filter</label>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-xl glass-input text-xs bg-slate-900 text-white"
+            className="px-3 py-2 rounded-2xl text-xs bg-[#FFF8E7] text-[#5A1A12] border border-[#E8C98B] outline-none focus:ring-2 focus:ring-[#D92D20]/20"
           >
             <option value="">All Statuses</option>
             <option value="PENDING_MATCH">Pending Match</option>
@@ -92,11 +114,11 @@ const AdminDonations = () => {
         </div>
 
         <div>
-          <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Food Category</label>
+          <label className="text-[10px] uppercase font-bold text-[#8A5A4A] block mb-1">Food Category</label>
           <select
             value={foodTypeFilter}
             onChange={(e) => setFoodTypeFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-xl glass-input text-xs bg-slate-900 text-white"
+            className="px-3 py-2 rounded-2xl text-xs bg-[#FFF8E7] text-[#5A1A12] border border-[#E8C98B] outline-none focus:ring-2 focus:ring-[#D92D20]/20"
           >
             <option value="">All Food Types</option>
             <option value="COOKED_MEALS">Cooked Meals</option>
@@ -109,10 +131,10 @@ const AdminDonations = () => {
       </div>
 
       {/* Donations Table */}
-      <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800">
+      <div className="bg-[#FFF8E7] shadow-[0_12px_32px_rgba(183,96,42,0.12)] rounded-3xl overflow-hidden border border-[#E8C98B]">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-900/80 text-xs uppercase text-slate-400 border-b border-slate-800">
+          <table className="w-full text-left text-sm text-[#6B3A2A]">
+            <thead className="bg-[#FFF8E7]/80 text-xs uppercase text-[#8A5A4A] border-b border-[#E8C98B]">
               <tr>
                 <th className="py-3 px-4">Title</th>
                 <th className="py-3 px-4">Donor</th>
@@ -123,25 +145,25 @@ const AdminDonations = () => {
                 <th className="py-3 px-4">Created</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-[#E8C98B]/70">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">Loading donations...</td>
+                  <td colSpan={7} className="py-8 text-center text-[#8A5A4A]">Loading donations...</td>
                 </tr>
               ) : donations.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">No donations found.</td>
+                  <td colSpan={7} className="py-8 text-center text-[#8A5A4A]">No donations found.</td>
                 </tr>
               ) : (
                 donations.map((d) => (
-                  <tr key={d._id} className="hover:bg-slate-800/40">
-                    <td className="py-3 px-4 font-semibold text-white">{d.title}</td>
-                    <td className="py-3 px-4 text-xs text-slate-300">{d.donorId?.name || 'N/A'}</td>
-                    <td className="py-3 px-4 text-xs text-slate-300">{d.matchedNgoId?.name || 'Pending Match'}</td>
+                  <tr key={d._id} className="hover:bg-[#FFE8B0]">
+                    <td className="py-3 px-4 font-semibold text-[#5A1A12]">{d.title}</td>
+                    <td className="py-3 px-4 text-xs text-[#6B3A2A]">{d.donorId?.name || 'N/A'}</td>
+                    <td className="py-3 px-4 text-xs text-[#6B3A2A]">{d.matchedNgoId?.name || 'Pending Match'}</td>
                     <td className="py-3 px-4 text-xs">{d.quantity?.estimatedServings} Meals</td>
                     <td className="py-3 px-4 text-xs">
                       {d.urgency ? (
-                        <span className="font-semibold text-amber-400">{d.urgency}</span>
+                        <span className="font-semibold text-[#C2410C]">{d.urgency}</span>
                       ) : (
                         'Standard'
                       )}
@@ -151,7 +173,7 @@ const AdminDonations = () => {
                         {d.status.replace(/_/g, ' ')}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-400">
+                    <td className="py-3 px-4 text-xs text-[#8A5A4A]">
                       {new Date(d.createdAt).toLocaleDateString()}
                     </td>
                   </tr>

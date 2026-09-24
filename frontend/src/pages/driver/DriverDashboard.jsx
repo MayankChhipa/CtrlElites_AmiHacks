@@ -82,177 +82,203 @@ const DriverDashboard = () => {
 
   const getStatusBadge = (status) => {
     const map = {
-      ASSIGNED: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
-      EN_ROUTE_TO_PICKUP: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
-      ARRIVED_AT_PICKUP: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
-      PICKED_UP: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
-      EN_ROUTE_TO_DELIVERY: 'bg-teal-500/20 text-teal-300 border-teal-500/40',
-      ARRIVED_AT_DROPOFF: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
-      DELIVERED: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+      ASSIGNED: 'bg-indigo-100 text-indigo-950 border-indigo-200',
+      EN_ROUTE_TO_PICKUP: 'bg-blue-100 text-blue-950 border-blue-200',
+      ARRIVED_AT_PICKUP: 'bg-amber-100 text-amber-950 border-amber-200',
+      PICKED_UP: 'bg-cyan-100 text-cyan-950 border-cyan-200',
+      EN_ROUTE_TO_DELIVERY: 'bg-teal-100 text-teal-950 border-teal-200',
+      ARRIVED_AT_DROPOFF: 'bg-purple-100 text-purple-950 border-purple-200',
+      DELIVERED: 'bg-emerald-100 text-emerald-950 border-emerald-200',
     };
-    return map[status] || 'bg-slate-700 text-slate-300';
+    return map[status] || 'bg-stone-100 text-stone-800 border-stone-200';
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Top Header */}
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-white">Rescue Fleet Dispatch</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Claim matched food transports, execute pickups and deliveries with dual OTP verification.
-        </p>
-      </div>
-
-      {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center gap-3 text-rose-300 text-sm">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* Active Delivery Alert Banner (if courier is currently on a mission) */}
-      {hasActiveDelivery && (
-        <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-amber-500/40 bg-amber-950/20 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5 text-amber-400">
-              <Truck className="w-6 h-6 animate-pulse" />
-              <h2 className="text-lg font-bold text-white">Active Rescue Mission in Progress</h2>
-            </div>
-            <span className={`text-xs font-bold px-3 py-1 rounded-full border ${getStatusBadge(activeDeliveries[0].status)}`}>
-              {activeDeliveries[0].status.replace(/_/g, ' ')}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-300">
-            <div>
-              <span className="text-slate-500 block uppercase font-semibold text-[10px]">Food Cargo</span>
-              <span className="font-bold text-white text-sm">
-                {activeDeliveries[0].donationId?.title || 'Surplus Meals'}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-500 block uppercase font-semibold text-[10px]">Pickup Origin</span>
-              <span className="font-medium text-slate-200 truncate block">
-                {activeDeliveries[0].donationId?.donorId?.name} ({activeDeliveries[0].donationId?.pickupLocation?.address || 'Origin'})
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-500 block uppercase font-semibold text-[10px]">Shelter Destination</span>
-              <span className="font-medium text-slate-200 truncate block">
-                {activeDeliveries[0].donationId?.matchedNgoId?.name || 'Shelter'}
-              </span>
-            </div>
-          </div>
-
-          <div className="pt-2">
-            <Link
-              to={`/driver/deliveries/${activeDeliveries[0]._id}`}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-amber-600/30 transition-all hover:scale-105 active:scale-95"
-            >
-              <span>Continue Delivery Mission</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* Available Deliveries Board */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <span>Available Delivery Requests</span>
-            <span className="text-xs bg-amber-500/20 text-amber-300 font-semibold px-2 py-0.5 rounded-full border border-amber-500/30">
-              {availableDeliveries.length}
-            </span>
-          </h2>
-        </div>
-
-        {loading ? (
-          <div className="p-12 text-center text-slate-400">Loading delivery requests...</div>
-        ) : availableDeliveries.length === 0 ? (
-          <div className="glass-panel p-10 rounded-2xl text-center border border-slate-800 space-y-2">
-            <Truck className="w-12 h-12 text-slate-600 mx-auto" />
-            <h3 className="text-base font-bold text-slate-300">No available deliveries right now</h3>
-            <p className="text-slate-400 text-xs max-w-sm mx-auto">
-              When an NGO accepts a surplus food proposal, it will appear here instantly for pickup dispatch.
+    <div className="min-h-screen bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-100 text-stone-800 font-sans py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* Top Header & Monogram Branding */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-black text-red-950 tracking-tight">Rescue Fleet Dispatch</h1>
+            <p className="text-stone-600 text-sm font-medium mt-1">
+              Claim matched food transports, execute pickups and deliveries with dual OTP verification.
             </p>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {availableDeliveries.map((d) => (
-              <div
-                key={d._id}
-                className="glass-panel rounded-3xl p-6 border border-slate-700/80 hover:border-amber-500/40 transition-all flex flex-col justify-between space-y-5"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40">
-                      Matched & Ready
-                    </span>
-                    {d.urgency && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                        {d.urgency}
-                      </span>
-                    )}
-                  </div>
 
-                  <div>
-                    <h3 className="font-bold text-base text-white">{d.title}</h3>
-                    <p className="text-xs text-slate-400 mt-1 line-clamp-1">{d.description || 'Surplus rescue cargo'}</p>
-                  </div>
+          {/* FR Monogram Branding Badge */}
+          <div className="inline-flex items-center gap-2 bg-[#FFFDF6] px-4 py-1.5 rounded-full shadow-md shadow-orange-900/5 border border-orange-200/60 self-start sm:self-auto">
+            <div className="w-7 h-7 rounded-full bg-red-600 flex items-center justify-center text-white font-black text-xs tracking-tighter shadow-inner">
+              FR
+            </div>
+            <span className="text-xs font-black tracking-wider text-red-900 uppercase">
+              Fleet Logistics
+            </span>
+          </div>
+        </div>
 
-                  <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-2 text-xs">
-                    <div className="flex items-start gap-2 text-slate-300">
-                      <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <span className="text-[10px] uppercase text-slate-500 block">Pickup Origin</span>
-                        <span className="font-semibold text-white">{d.donorId?.name}</span>
-                        <span className="text-[11px] text-slate-400 block truncate">{d.pickupLocation?.address}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2 text-slate-300 pt-1 border-t border-slate-800">
-                      <Building2 className="w-3.5 h-3.5 text-purple-400 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <span className="text-[10px] uppercase text-slate-500 block">Dropoff Shelter</span>
-                        <span className="font-semibold text-white">{d.matchedNgoId?.name}</span>
-                        <span className="text-[11px] text-slate-400 block truncate">{d.matchedNgoId?.address?.formattedAddress || 'Shelter'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-400">
-                    <div>
-                      <span className="text-[10px] uppercase text-slate-500 block">Servings</span>
-                      <span className="font-bold text-white">{d.quantity?.estimatedServings} Meals</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase text-slate-500 block">Weight</span>
-                      <span className="font-bold text-white">{d.quantity?.estimatedWeightKg} kg</span>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleClaim(d._id)}
-                  disabled={hasActiveDelivery || claimingId === d._id}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white text-xs font-bold rounded-xl shadow-lg shadow-amber-600/30 flex items-center justify-center gap-1.5 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {claimingId === d._id ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : hasActiveDelivery ? (
-                    <span>Finish Active Delivery First</span>
-                  ) : (
-                    <>
-                      <Truck className="w-4 h-4" />
-                      <span>Claim Transport</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            ))}
+        {error && (
+          <div className="p-4 rounded-2xl bg-red-100 border border-red-300 flex items-center gap-3 text-red-900 font-bold text-sm shadow-sm">
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
+
+        {/* Active Delivery Alert Banner (if courier is currently on a mission) */}
+        {hasActiveDelivery && (
+          <div className="bg-[#FFFDF6] p-6 sm:p-8 rounded-3xl border-2 border-orange-300 shadow-xl shadow-orange-900/5 space-y-4 relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+              <div className="flex items-center gap-3 text-red-600">
+                <div className="w-10 h-10 rounded-2xl bg-orange-100 flex items-center justify-center text-red-600">
+                  <Truck className="w-5 h-5 animate-pulse stroke-[2.5]" />
+                </div>
+                <h2 className="text-xl font-black text-red-950">Active Rescue Mission in Progress</h2>
+              </div>
+              <span className={`text-xs font-black px-3.5 py-1 rounded-full border uppercase shadow-sm ${getStatusBadge(activeDeliveries[0].status)}`}>
+                {activeDeliveries[0].status.replace(/_/g, ' ')}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-stone-600 relative z-10 pt-2">
+              <div className="p-3.5 bg-orange-50/60 rounded-2xl border border-orange-100">
+                <span className="text-stone-500 block uppercase font-black text-[10px]">Food Cargo</span>
+                <span className="font-black text-red-950 text-sm block truncate">
+                  {activeDeliveries[0].donationId?.title || 'Surplus Meals'}
+                </span>
+              </div>
+              <div className="p-3.5 bg-orange-50/60 rounded-2xl border border-orange-100">
+                <span className="text-stone-500 block uppercase font-black text-[10px]">Pickup Origin</span>
+                <span className="font-bold text-stone-800 truncate block">
+                  {activeDeliveries[0].donationId?.donorId?.name} ({activeDeliveries[0].donationId?.pickupLocation?.address || 'Origin'})
+                </span>
+              </div>
+              <div className="p-3.5 bg-orange-50/60 rounded-2xl border border-orange-100">
+                <span className="text-stone-500 block uppercase font-black text-[10px]">Shelter Destination</span>
+                <span className="font-bold text-stone-800 truncate block">
+                  {activeDeliveries[0].donationId?.matchedNgoId?.name || 'Shelter'}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 relative z-10">
+              <Link
+                to={`/driver/deliveries/${activeDeliveries[0]._id}`}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-xs font-black rounded-full shadow-lg shadow-red-600/20 active:scale-95 transition-all"
+              >
+                <span>Continue Delivery Mission</span>
+                <ArrowRight className="w-4 h-4 stroke-[3]" />
+              </Link>
+            </div>
+
+            {/* Background Ambient Glow */}
+            <div className="absolute -right-12 -top-12 w-48 h-48 bg-orange-200/40 rounded-full blur-2xl pointer-events-none" />
+          </div>
+        )}
+
+        {/* Available Deliveries Board */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-black text-red-950 flex items-center gap-2.5">
+              <span>Available Delivery Requests</span>
+              <span className="text-xs bg-orange-100 text-orange-950 font-black px-2.5 py-0.5 rounded-full border border-orange-200">
+                {availableDeliveries.length}
+              </span>
+            </h2>
+          </div>
+
+          {loading ? (
+            <div className="bg-[#FFFDF6] p-12 rounded-3xl shadow-xl shadow-orange-900/5 text-center text-stone-600 font-bold border border-orange-100">
+              <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+              <span>Loading delivery requests...</span>
+            </div>
+          ) : availableDeliveries.length === 0 ? (
+            <div className="bg-[#FFFDF6] p-10 rounded-3xl text-center border border-orange-100 shadow-xl shadow-orange-900/5 space-y-2">
+              <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 mx-auto mb-2">
+                <Truck className="w-7 h-7 stroke-[2]" />
+              </div>
+              <h3 className="text-base font-black text-red-950">No available deliveries right now</h3>
+              <p className="text-stone-600 text-xs font-medium max-w-sm mx-auto">
+                When an NGO accepts a surplus food proposal, it will appear here instantly for pickup dispatch.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {availableDeliveries.map((d) => (
+                <div
+                  key={d._id}
+                  className="bg-[#FFFDF6] rounded-3xl p-6 border border-orange-100 shadow-xl shadow-orange-900/5 hover:shadow-2xl hover:border-orange-300 transition-all flex flex-col justify-between space-y-5"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-100 text-blue-900 border border-blue-200">
+                        Matched & Ready
+                      </span>
+                      {d.urgency && (
+                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+                          {d.urgency}
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <h3 className="font-black text-base text-red-950">{d.title}</h3>
+                      <p className="text-xs font-medium text-stone-600 mt-1 line-clamp-1">{d.description || 'Surplus rescue cargo'}</p>
+                    </div>
+
+                    <div className="p-3.5 bg-orange-50/60 rounded-2xl border border-orange-100 space-y-2.5 text-xs">
+                      <div className="flex items-start gap-2.5 text-stone-700">
+                        <MapPin className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5 stroke-[2.5]" />
+                        <div>
+                          <span className="text-[10px] uppercase font-black text-stone-400 block">Pickup Origin</span>
+                          <span className="font-black text-red-950">{d.donorId?.name}</span>
+                          <span className="text-[11px] font-medium text-stone-600 block truncate">{d.pickupLocation?.address}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5 text-stone-700 pt-2 border-t border-orange-100">
+                        <Building2 className="w-4 h-4 text-orange-700 shrink-0 mt-0.5 stroke-[2.5]" />
+                        <div>
+                          <span className="text-[10px] uppercase font-black text-stone-400 block">Dropoff Shelter</span>
+                          <span className="font-black text-red-950">{d.matchedNgoId?.name}</span>
+                          <span className="text-[11px] font-medium text-stone-600 block truncate">{d.matchedNgoId?.address?.formattedAddress || 'Shelter'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs text-stone-600">
+                      <div className="p-2.5 bg-orange-50/40 rounded-xl border border-orange-100">
+                        <span className="text-[10px] uppercase font-black text-stone-400 block">Servings</span>
+                        <span className="font-black text-red-950 text-sm">{d.quantity?.estimatedServings} Meals</span>
+                      </div>
+                      <div className="p-2.5 bg-orange-50/40 rounded-xl border border-orange-100">
+                        <span className="text-[10px] uppercase font-black text-stone-400 block">Weight</span>
+                        <span className="font-black text-red-950 text-sm">{d.quantity?.estimatedWeightKg} kg</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleClaim(d._id)}
+                    disabled={hasActiveDelivery || claimingId === d._id}
+                    className="w-full py-3.5 px-4 bg-red-600 hover:bg-red-700 text-white text-xs font-black rounded-full shadow-md shadow-red-600/20 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {claimingId === d._id ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : hasActiveDelivery ? (
+                      <span>Finish Active Delivery First</span>
+                    ) : (
+                      <>
+                        <Truck className="w-4 h-4 stroke-[2.5]" />
+                        <span>Claim Transport</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );
