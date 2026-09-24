@@ -1,73 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap');
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Outfit', sans-serif;
+
+  /* Map the existing dashboard palette to the light visual theme. */
+  --color-emerald-300: #A5B4FC;
+  --color-emerald-400: #818CF8;
+  --color-emerald-500: #6366F1;
+  --color-emerald-600: #4F46E5;
+  --color-emerald-700: #4338CA;
+
+  --color-amber-300: #67E8F9;
+  --color-amber-400: #22D3EE;
+  --color-amber-500: #06B6D4;
+  --color-amber-600: #0891B2;
+  --color-amber-700: #0E7490;
+
+  --color-teal-300: #67E8F9;
+  --color-teal-400: #22D3EE;
+  --color-teal-500: #06B6D4;
+  --color-teal-600: #0891B2;
+  --color-teal-700: #0E7490;
+
+  --color-purple-300: #C4B5FD;
+  --color-purple-400: #A78BFA;
+  --color-purple-500: #8B5CF6;
+  --color-purple-600: #7C3AED;
+  --color-purple-700: #6D28D9;
+
+  /* Existing slate utility names are used throughout the UI as surface and ink tokens. */
+  --color-slate-100: #000000;
+  --color-slate-200: #1E293B;
+  --color-slate-300: #334155;
+  --color-slate-400: #475569;
+  --color-slate-500: #64748B;
+  --color-slate-600: #94A3B8;
+  --color-slate-700: #CBD5E1;
+  --color-slate-800: #E2E8F0;
+  --color-slate-900: #F1F5F9;
+  --color-slate-950: #F8FAFC;
+
+  --color-rose-300: #FDA4AF;
+  --color-rose-400: #FB7185;
+  --color-rose-500: #F43F5E;
+  --color-rose-600: #E11D48;
+}
+
+@utility font-script {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
 @layer base {
   :root {
-    --color-primary: #10b981;
-    --color-primary-dark: #059669;
-    --color-accent: #f59e0b;
+    color-scheme: light;
+    --color-primary: #4F46E5;
+    --color-primary-dark: #4338CA;
+    --color-accent: #06B6D4;
+    --color-secondary: #7C3AED;
+    --color-canvas: #F8FAFC;
+    --color-ink: #000000;
+    --color-soft: #121313;
   }
 
   body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background-color: #0f172a;
-    color: #f8fafc;
     min-height: 100vh;
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   }
 }
 
-/* Glassmorphism utilities */
 .glass-panel {
-  background: rgba(30, 41, 59, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(79, 70, 229, 0.15);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 10px 30px rgba(79, 70, 229, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
 .glass-panel-hover {
-  transition: all 0.2s ease-in-out;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 .glass-panel-hover:hover {
-  background: rgba(30, 41, 59, 0.9);
-  border-color: rgba(16, 185, 129, 0.3);
-  transform: translateY(-2px);
+  border-color: rgba(79, 70, 229, 0.45);
+  background: #FFFFFF;
+  box-shadow: 0 14px 36px rgba(79, 70, 229, 0.16);
+  transform: translateY(-3px);
 }
 
 .glass-input {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #f8fafc;
-}
-.glass-input:focus {
-  border-color: #10b981;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #000000;
 }
 
-/* Custom Scrollbars */
+.glass-input:focus {
+  border-color: #4F46E5;
+  outline: none;
+  box-shadow: 0 0 0 3.5px rgba(79, 70, 229, 0.2);
+}
+
+.glass-input::placeholder {
+  color: #64748B;
+}
+
+select.glass-input option {
+  background-color: #F8FAFC;
+  color: #000000;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #0f172a;
-}
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #E2E8F0;
 }
 
-/* Leaflet map container z-index containment */
-.leaflet-container {
-  z-index: 10 !important;
+::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: #A5B4FC;
 }
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4F46E5;
+}
+
+.leaflet-container,
 .leaflet-pane {
   z-index: 10 !important;
 }
+
 .leaflet-top,
 .leaflet-bottom {
   z-index: 20 !important;

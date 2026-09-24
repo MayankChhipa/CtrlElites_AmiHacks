@@ -449,7 +449,7 @@ const DeliveryDetail = () => {
 
       {/* Cancel Confirmation Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-rose-500/40 max-w-md w-full space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <h3 className="font-bold text-base text-white">Cancel Rescue Delivery</h3>
             <p className="text-xs text-slate-300">

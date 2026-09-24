@@ -1,19 +1,44 @@
 const multer = require('multer');
 
-// Store files in memory buffer for Cloudinary or base64 processing
+// Keep uploaded files in memory so they can be sent directly
+// to Cloudinary or processed as buffers.
 const storage = multer.memoryStorage();
 
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
+
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are supported!'), false);
+  if (!file || !file.mimetype) {
+    return cb(
+      new multer.MulterError('LIMIT_UNEXPECTED_FILE'),
+      false
+    );
   }
+
+  if (!ALLOWED_IMAGE_TYPES.has(file.mimetype.toLowerCase())) {
+    return cb(
+      new Error(
+        'Only JPEG, PNG, WebP, and GIF image files are supported.'
+      ),
+      false
+    );
+  }
+
+  return cb(null, true);
 };
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5 MB per file
+    files: 10, // Maximum files per request
+  },
+
   fileFilter,
 });
 

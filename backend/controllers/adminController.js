@@ -1,30 +1,112 @@
 const mongoose = require('mongoose');
+
 const User = require('../models/User');
 const Donation = require('../models/Donation');
 const Delivery = require('../models/Delivery');
 const Match = require('../models/Match');
 const ImpactLog = require('../models/ImpactLog');
-const { enrichDonationWithUrgency, calculateUrgency } = require('../services/urgencyEngine');
+
+const {
+  enrichDonationWithUrgency,
+} = require('../services/urgencyEngine');
+
+/**
+ * Safely parse pagination parameters.
+ */
+const getPagination = (page, limit) => {
+  const parsedPage = Number.parseInt(page, 10);
+  const parsedLimit = Number.parseInt(limit, 10);
+
+  const currentPage =
+    Number.isFinite(parsedPage) && parsedPage > 0
+      ? parsedPage
+      : 1;
+
+  const pageLimit =
+    Number.isFinite(parsedLimit) && parsedLimit > 0
+      ? Math.min(parsedLimit, 100)
+      : 25;
+
+  return {
+    page: currentPage,
+    limit: pageLimit,
+    skip: (currentPage - 1) * pageLimit,
+  };
+};
+
+/**
+ * Escape user input before using it in a MongoDB regex.
+ */
+const escapeRegex = (value) => {
+  return String(value).replace(
+    /[.*+?^${}()|[\]\\]/g,
+    '\\$&'
+  );
+};
 
 // @desc List all users with filters & pagination
 // @route GET /api/admin/users
 const listUsers = async (req, res) => {
   try {
-    const { role, isVerified, search, page = 1, limit = 25 } = req.query;
+    const {
+      role,
+      isVerified,
+      search,
+      page = 1,
+      limit = 25,
+    } = req.query;
+
     const query = {};
 
-    if (role) query.role = role;
-    if (isVerified !== undefined) query.isVerified = isVerified === 'true';
-    if (search) {
+    if (role) {
+      query.role = role;
+    }
+
+    if (isVerified !== undefined) {
+      if (
+        isVerified !== 'true' &&
+        isVerified !== 'false'
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'isVerified must be true or false.',
+        });
+      }
+
+      query.isVerified = isVerified === 'true';
+    }
+
+    if (search && String(search).trim()) {
+      const safeSearch = escapeRegex(
+        String(search).trim()
+      );
+
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
+        {
+          name: {
+            $regex: safeSearch,
+            $options: 'i',
+          },
+        },
+        {
+          email: {
+            $regex: safeSearch,
+            $options: 'i',
+          },
+        },
       ];
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const pagination = getPagination(page, limit);
+
     const [users, total] = await Promise.all([
-      User.find(query).select('-passwordHash').sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
+      User.find(query)
+        .select('-passwordHash')
+        .sort({ createdAt: -1 })
+        .skip(pagination.skip)
+        .limit(pagination.limit)
+        .lean(),
+
       User.countDocuments(query),
     ]);
 
@@ -32,11 +114,18 @@ const listUsers = async (req, res) => {
       success: true,
       users,
       total,
-      page: Number(page),
-      pages: Math.ceil(total / Number(limit)),
+      page: pagination.page,
+      pages: Math.ceil(
+        total / pagination.limit
+      ),
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error('listUsers error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch users.',
+    });
   }
 };
 
@@ -44,18 +133,37 @@ const listUsers = async (req, res) => {
 // @route GET /api/admin/users/:id
 const getUserById = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ success: false, message: 'Invalid user ID.' });
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID.',
+      });
     }
 
-    const user = await User.findById(req.params.id).select('-passwordHash');
+    const user = await User.findById(id)
+      .select('-passwordHash')
+      .lean();
+
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found.' });
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.',
+      });
     }
 
-    return res.status(200).json({ success: true, user });
+    return res.status(200).json({
+      success: true,
+      user,
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error('getUserById error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user.',
+    });
   }
 };
 
@@ -63,28 +171,68 @@ const getUserById = async (req, res) => {
 // @route PATCH /api/admin/users/:id/verify
 const verifyUser = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ success: false, message: 'Invalid user ID.' });
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID.',
+      });
     }
 
     const { isVerified = true } = req.body;
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { isVerified: Boolean(isVerified) },
-      { returnDocument: 'after' }
-    ).select('-passwordHash');
 
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found.' });
+    if (typeof isVerified !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'isVerified must be a boolean.',
+      });
     }
+
+    const existingUser = await User.findById(id);
+
+    if (!existingUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.',
+      });
+    }
+
+    // Only NGO and DRIVER accounts require this verification flow.
+    if (
+      !['NGO', 'DRIVER'].includes(existingUser.role)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Only NGO and DRIVER accounts can be verified through this endpoint.',
+      });
+    }
+
+    existingUser.isVerified = isVerified;
+
+    await existingUser.save();
+
+    const user = existingUser
+      .toObject();
+
+    delete user.passwordHash;
 
     return res.status(200).json({
       success: true,
-      message: `User ${user.isVerified ? 'verified' : 'rejected / unverified'} successfully.`,
+      message: `User ${isVerified
+          ? 'verified'
+          : 'rejected / unverified'
+        } successfully.`,
       user,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error('verifyUser error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to update user verification.',
+    });
   }
 };
 
@@ -92,41 +240,80 @@ const verifyUser = async (req, res) => {
 // @route GET /api/admin/donations
 const listAllDonations = async (req, res) => {
   try {
-    const { status, foodType, page = 1, limit = 25 } = req.query;
+    const {
+      status,
+      foodType,
+      page = 1,
+      limit = 25,
+    } = req.query;
+
     const query = {};
 
-    if (status) query.status = status;
-    if (foodType) query.foodType = foodType;
+    if (status) {
+      query.status = status;
+    }
 
-    const skip = (Number(page) - 1) * Number(limit);
-    const [donations, total] = await Promise.all([
-      Donation.find(query)
-        .populate('donorId', 'name email phone address')
-        .populate('matchedNgoId', 'name email phone address')
-        .populate('assignedDriverId', 'name phone driverProfile')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit)),
-      Donation.countDocuments(query),
-    ]);
+    if (foodType) {
+      query.foodType = foodType;
+    }
 
-    const enriched = donations.map((d) => enrichDonationWithUrgency(d));
+    const pagination = getPagination(page, limit);
+
+    const [donations, total] =
+      await Promise.all([
+        Donation.find(query)
+          .populate(
+            'donorId',
+            'name email phone address'
+          )
+          .populate(
+            'matchedNgoId',
+            'name email phone address'
+          )
+          .populate(
+            'assignedDriverId',
+            'name phone driverProfile'
+          )
+          .sort({ createdAt: -1 })
+          .skip(pagination.skip)
+          .limit(pagination.limit),
+
+        Donation.countDocuments(query),
+      ]);
+
+    const enriched = donations.map(
+      (donation) =>
+        enrichDonationWithUrgency(donation)
+    );
 
     return res.status(200).json({
       success: true,
       donations: enriched,
       total,
-      page: Number(page),
-      pages: Math.ceil(total / Number(limit)),
+      page: pagination.page,
+      pages: Math.ceil(
+        total / pagination.limit
+      ),
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error(
+      'listAllDonations error:',
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch donations.',
+    });
   }
 };
 
 // @desc View active deliveries
 // @route GET /api/admin/deliveries/active
-const getActiveDeliveries = async (req, res) => {
+const getActiveDeliveries = async (
+  req,
+  res
+) => {
   try {
     const activeStatuses = [
       'ASSIGNED',
@@ -137,69 +324,208 @@ const getActiveDeliveries = async (req, res) => {
       'ARRIVED_AT_DROPOFF',
     ];
 
-    const deliveries = await Delivery.find({ status: { $in: activeStatuses } })
-      .populate('driverId', 'name phone driverProfile')
-      .populate('donorId', 'name phone address location')
-      .populate('ngoId', 'name phone address location')
-      .populate('donationId')
-      .sort({ createdAt: -1 });
+    const deliveries =
+      await Delivery.find({
+        status: {
+          $in: activeStatuses,
+        },
+      })
+        .populate(
+          'driverId',
+          'name phone driverProfile'
+        )
+        .populate(
+          'donorId',
+          'name phone address location'
+        )
+        .populate(
+          'ngoId',
+          'name phone address location'
+        )
+        .populate('donationId')
+        .sort({ createdAt: -1 })
+        .lean();
 
-    return res.status(200).json({ success: true, count: deliveries.length, deliveries });
+    return res.status(200).json({
+      success: true,
+      count: deliveries.length,
+      deliveries,
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error(
+      'getActiveDeliveries error:',
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        'Failed to fetch active deliveries.',
+    });
   }
 };
 
-// @desc View expiring donations (less than 2 hours remaining)
+// @desc View expiring donations
 // @route GET /api/admin/donations/expiring
-const getExpiringDonations = async (req, res) => {
+const getExpiringDonations = async (
+  req,
+  res
+) => {
   try {
-    // Donations that are still active (not yet delivered/verified/cancelled/expired)
-    const donations = await Donation.find({
-      status: { $in: ['PENDING_MATCH', 'MATCHED', 'DRIVER_ASSIGNED'] },
-    })
-      .populate('donorId', 'name phone address')
-      .populate('matchedNgoId', 'name phone address')
-      .sort({ 'perishability.expiryTime': 1 });
+    const donations =
+      await Donation.find({
+        status: {
+          $in: [
+            'PENDING_MATCH',
+            'MATCHED',
+            'DRIVER_ASSIGNED',
+          ],
+        },
+      })
+        .populate(
+          'donorId',
+          'name phone address'
+        )
+        .populate(
+          'matchedNgoId',
+          'name phone address'
+        )
+        .sort({
+          'perishability.expiryTime': 1,
+        });
 
-    // Filter by remaining time <= 120 mins
     const expiring = donations
-      .map((d) => enrichDonationWithUrgency(d))
-      .filter((d) => ['CRITICAL', 'HIGH'].includes(d.urgency) || (d.timeRemainingMinutes && d.timeRemainingMinutes < 120));
+      .map((donation) =>
+        enrichDonationWithUrgency(donation)
+      )
+      .filter((donation) => {
+        const remaining =
+          donation.timeRemainingMinutes;
 
-    return res.status(200).json({ success: true, count: expiring.length, expiringDonations: expiring });
+        return (
+          ['CRITICAL', 'HIGH'].includes(
+            donation.urgency
+          ) ||
+          (
+            typeof remaining === 'number' &&
+            remaining <= 120
+          )
+        );
+      });
+
+    return res.status(200).json({
+      success: true,
+      count: expiring.length,
+      expiringDonations: expiring,
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error(
+      'getExpiringDonations error:',
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        'Failed to fetch expiring donations.',
+    });
   }
 };
 
 // @desc View failed or unmatched donations
 // @route GET /api/admin/matches/failed
-const getFailedMatches = async (req, res) => {
+const getFailedMatches = async (
+  req,
+  res
+) => {
   try {
-    // Donations in PENDING_MATCH that have at least one declined/expired match
-    const declinedMatches = await Match.find({ status: { $in: ['DECLINED', 'EXPIRED'] } });
-    const donationIds = [...new Set(declinedMatches.map((m) => m.donationId.toString()))];
+    const donationIds =
+      await Match.distinct(
+        'donationId',
+        {
+          status: {
+            $in: [
+              'DECLINED',
+              'EXPIRED',
+            ],
+          },
+        }
+      );
 
-    const donations = await Donation.find({
-      _id: { $in: donationIds },
-      status: 'PENDING_MATCH',
-    })
-      .populate('donorId', 'name phone address')
-      .sort({ createdAt: -1 });
+    if (!donationIds.length) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        failedDonations: [],
+      });
+    }
 
-    const enriched = donations.map((d) => enrichDonationWithUrgency(d));
+    const donations =
+      await Donation.find({
+        _id: {
+          $in: donationIds,
+        },
+        status: 'PENDING_MATCH',
+      })
+        .populate(
+          'donorId',
+          'name phone address'
+        )
+        .sort({ createdAt: -1 });
 
-    return res.status(200).json({ success: true, count: enriched.length, failedDonations: enriched });
+    const enriched = donations.map(
+      (donation) =>
+        enrichDonationWithUrgency(donation)
+    );
+
+    return res.status(200).json({
+      success: true,
+      count: enriched.length,
+      failedDonations: enriched,
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error(
+      'getFailedMatches error:',
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        'Failed to fetch failed matches.',
+    });
   }
 };
 
 // @desc View overall platform statistics
 // @route GET /api/admin/statistics
-const getPlatformStatistics = async (req, res) => {
+const getPlatformStatistics = async (
+  req,
+  res
+) => {
   try {
+    const activeDonationStatuses = [
+      'PENDING_MATCH',
+      'MATCHED',
+      'DRIVER_ASSIGNED',
+      'PICKED_UP',
+      'IN_TRANSIT',
+    ];
+
+    const activeDeliveryStatuses = [
+      'ASSIGNED',
+      'EN_ROUTE_TO_PICKUP',
+      'ARRIVED_AT_PICKUP',
+      'PICKED_UP',
+      'EN_ROUTE_TO_DELIVERY',
+      'ARRIVED_AT_DROPOFF',
+    ];
+
+    const completedDeliveryStatuses = [
+      'DELIVERED',
+      'COMPLETED',
+    ];
+
     const [
       totalUsers,
       donorsCount,
@@ -211,24 +537,96 @@ const getPlatformStatistics = async (req, res) => {
       activeDonations,
       deliveredDonations,
       activeDeliveries,
-      logs,
+      completedDeliveries,
+      impactTotals,
     ] = await Promise.all([
       User.countDocuments(),
-      User.countDocuments({ role: 'DONOR' }),
-      User.countDocuments({ role: 'NGO' }),
-      User.countDocuments({ role: 'DRIVER' }),
-      User.countDocuments({ role: 'NGO', isVerified: true }),
-      User.countDocuments({ role: 'DRIVER', isVerified: true }),
+
+      User.countDocuments({
+        role: 'DONOR',
+      }),
+
+      User.countDocuments({
+        role: 'NGO',
+      }),
+
+      User.countDocuments({
+        role: 'DRIVER',
+      }),
+
+      User.countDocuments({
+        role: 'NGO',
+        isVerified: true,
+      }),
+
+      User.countDocuments({
+        role: 'DRIVER',
+        isVerified: true,
+      }),
+
       Donation.countDocuments(),
-      Donation.countDocuments({ status: { $in: ['PENDING_MATCH', 'MATCHED', 'DRIVER_ASSIGNED', 'PICKED_UP', 'IN_TRANSIT'] } }),
-      Donation.countDocuments({ status: { $in: ['DELIVERED', 'VERIFIED'] } }),
-      Delivery.countDocuments({ status: { $in: ['ASSIGNED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP', 'PICKED_UP', 'EN_ROUTE_TO_DELIVERY', 'ARRIVED_AT_DROPOFF'] } }),
-      ImpactLog.find(),
+
+      Donation.countDocuments({
+        status: {
+          $in: activeDonationStatuses,
+        },
+      }),
+
+      Donation.countDocuments({
+        status: {
+          $in: [
+            'DELIVERED',
+            'VERIFIED',
+          ],
+        },
+      }),
+
+      Delivery.countDocuments({
+        status: {
+          $in: activeDeliveryStatuses,
+        },
+      }),
+
+      Delivery.countDocuments({
+        status: {
+          $in: completedDeliveryStatuses,
+        },
+      }),
+
+      ImpactLog.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalMealsRescued: {
+              $sum: {
+                $ifNull: [
+                  '$mealsRescued',
+                  0,
+                ],
+              },
+            },
+            totalWeightKgSaved: {
+              $sum: {
+                $ifNull: [
+                  '$weightKgSaved',
+                  0,
+                ],
+              },
+            },
+            totalCo2PreventedKg: {
+              $sum: {
+                $ifNull: [
+                  '$co2PreventedKg',
+                  0,
+                ],
+              },
+            },
+          },
+        },
+      ]),
     ]);
 
-    const totalMealsRescued = logs.reduce((sum, l) => sum + (l.mealsRescued || 0), 0);
-    const totalWeightKgSaved = logs.reduce((sum, l) => sum + (l.weightKgSaved || 0), 0);
-    const totalCo2PreventedKg = Math.round(logs.reduce((sum, l) => sum + (l.co2PreventedKg || 0), 0) * 10) / 10;
+    const impact = impactTotals[0] || {};
 
     return res.status(200).json({
       success: true,
@@ -241,42 +639,93 @@ const getPlatformStatistics = async (req, res) => {
           verifiedNgos,
           verifiedDrivers,
         },
+
         donations: {
           total: totalDonations,
           active: activeDonations,
           delivered: deliveredDonations,
         },
+
         deliveries: {
           active: activeDeliveries,
-          completed: logs.length,
+          completed:
+            completedDeliveries,
         },
+
         impact: {
-          totalMealsRescued,
-          totalWeightKgSaved,
-          totalCo2PreventedKg,
+          totalMealsRescued:
+            impact.totalMealsRescued || 0,
+
+          totalWeightKgSaved:
+            impact.totalWeightKgSaved || 0,
+
+          totalCo2PreventedKg:
+            Math.round(
+              (impact.totalCo2PreventedKg || 0) *
+              10
+            ) / 10,
         },
       },
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error(
+      'getPlatformStatistics error:',
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        'Failed to fetch platform statistics.',
+    });
   }
 };
 
 // @desc View recent impact logs
 // @route GET /api/admin/impact-logs
-const getRecentImpactLogs = async (req, res) => {
+const getRecentImpactLogs = async (
+  req,
+  res
+) => {
   try {
-    const logs = await ImpactLog.find()
-      .populate('donorId', 'name email address')
-      .populate('ngoId', 'name email address')
-      .populate('driverId', 'name phone driverProfile')
-      .populate('donationId', 'title foodType quantity')
-      .sort({ completedAt: -1 })
-      .limit(50);
+    const logs =
+      await ImpactLog.find()
+        .populate(
+          'donorId',
+          'name email address'
+        )
+        .populate(
+          'ngoId',
+          'name email address'
+        )
+        .populate(
+          'driverId',
+          'name phone driverProfile'
+        )
+        .populate(
+          'donationId',
+          'title foodType quantity'
+        )
+        .sort({ completedAt: -1 })
+        .limit(50)
+        .lean();
 
-    return res.status(200).json({ success: true, count: logs.length, logs });
+    return res.status(200).json({
+      success: true,
+      count: logs.length,
+      logs,
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error(
+      'getRecentImpactLogs error:',
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        'Failed to fetch impact logs.',
+    });
   }
 };
 
