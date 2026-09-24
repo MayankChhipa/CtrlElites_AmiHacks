@@ -1,64 +1,229 @@
 const axios = require('axios');
-const { calculateDistanceKm } = require('../utils/geoUtils');
 
-/**
- * Calculates road routing and ETA between two coordinates [longitude, latitude]
- * Uses OSRM if reachable, falls back to geodesic distance + urban transit speed.
- * 
- * @param {Array<number>} originCoords - [lon, lat]
- * @param {Array<number>} destCoords - [lon, lat]
- * @returns {Promise<Object>} { distanceKm, durationMinutes, source, geojson }
- */
-const calculateRouteAndEta = async (originCoords, destCoords) => {
-  // Validate coordinates
+const {
+  calculateDistanceKm,
+} = require('../utils/geoUtils');
+
+const isValidCoordinates = (coordinates) => {
   if (
-    !Array.isArray(originCoords) ||
-    originCoords.length !== 2 ||
-    !Array.isArray(destCoords) ||
-    destCoords.length !== 2
+    !Array.isArray(coordinates) ||
+    coordinates.length !== 2
   ) {
-    return getFallbackRoute([77.209, 28.6139], [77.22, 28.62]);
+    return false;
   }
 
-  const [lon1, lat1] = originCoords;
-  const [lon2, lat2] = destCoords;
+  const [longitude, latitude] = coordinates;
 
-  const osrmBaseUrl = process.env.OSRM_URL || 'https://router.project-osrm.org';
-
-  try {
-    const url = `${osrmBaseUrl}/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=full&geometries=geojson`;
-    const response = await axios.get(url, { timeout: 2500 });
-
-    if (
-      response.data &&
-      response.data.code === 'Ok' &&
-      response.data.routes &&
-      response.data.routes.length > 0
-    ) {
-      const route = response.data.routes[0];
-      const distanceKm = Math.round((route.distance / 1000) * 10) / 10;
-      const durationMinutes = Math.max(1, Math.round(route.duration / 60));
-
-      return {
-        distanceKm,
-        durationMinutes,
-        source: 'OSRM',
-        geojson: route.geometry,
-      };
-    }
-  } catch (err) {
-    // Graceful fallback on network timeout, OSRM rate-limit, or connection refusal
-  }
-
-  return getFallbackRoute(originCoords, destCoords);
+  return (
+    typeof longitude === 'number' &&
+    typeof latitude === 'number' &&
+    Number.isFinite(longitude) &&
+    Number.isFinite(latitude) &&
+    longitude >= -180 &&
+    longitude <= 180 &&
+    latitude >= -90 &&
+    latitude <= 90
+  );
 };
 
-const getFallbackRoute = (originCoords, destCoords) => {
-  const straightLine = calculateDistanceKm(originCoords, destCoords);
-  // Urban road factor ~ 1.3x straight-line
-  const distanceKm = Math.round(straightLine * 1.3 * 10) / 10;
-  // Average urban vehicle speed 30 km/h
-  const durationMinutes = Math.max(2, Math.round((distanceKm / 30) * 60));
+/**
+ * Calculates road routing and ETA between two coordinates.
+ *
+ * Coordinates use GeoJSON order:
+ * [longitude, latitude]
+ *
+ * Uses OSRM when available and falls back to a
+ * straight-line distance adjusted by an urban road factor.
+ *
+ * @param {Array<number>} originCoords
+ * @param {Array<number>} destCoords
+ * @returns {Promise<Object>}
+ * {
+ *   distanceKm,
+ *   durationMinutes,
+ *   source,
+ *   geojson
+ * }
+ */
+const calculateRouteAndEta = async (
+  originCoords,
+  destCoords
+) => {
+  /*
+   * Do not silently replace invalid coordinates with a
+   * hardcoded location.
+   */
+  if (
+    !isValidCoordinates(originCoords) ||
+    !isValidCoordinates(destCoords)
+  ) {
+    throw new Error(
+      'Valid origin and destination coordinates are required.'
+    );
+  }
+
+  const [
+    originLongitude,
+    originLatitude,
+  ] = originCoords;
+
+  const [
+    destinationLongitude,
+    destinationLatitude,
+  ] = destCoords;
+
+  const osrmBaseUrl =
+    process.env.OSRM_URL ||
+    'https://router.project-osrm.org';
+
+  const normalizedBaseUrl =
+    osrmBaseUrl.replace(/\/+$/, '');
+
+  try {
+    const url =
+      `${normalizedBaseUrl}/route/v1/driving/` +
+      `${originLongitude},${originLatitude};` +
+      `${destinationLongitude},${destinationLatitude}` +
+      '?overview=full&geometries=geojson';
+
+    const response = await axios.get(url, {
+      timeout: 2500,
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    if (
+      response.data?.code === 'Ok' &&
+      Array.isArray(response.data.routes) &&
+      response.data.routes.length > 0
+    ) {
+      const route =
+        response.data.routes[0];
+
+      const rawDistanceKm =
+        Number(route.distance) / 1000;
+
+      const rawDurationMinutes =
+        Number(route.duration) / 60;
+
+      if (
+        Number.isFinite(rawDistanceKm) &&
+        rawDistanceKm >= 0 &&
+        Number.isFinite(rawDurationMinutes) &&
+        rawDurationMinutes >= 0
+      ) {
+        const distanceKm =
+          Math.round(
+            rawDistanceKm * 10
+          ) / 10;
+
+        const durationMinutes =
+          Math.max(
+            1,
+            Math.round(
+              rawDurationMinutes
+            )
+          );
+
+        return {
+          distanceKm,
+          durationMinutes,
+          source: 'OSRM',
+          geojson:
+            route.geometry || null,
+        };
+      }
+    }
+
+    /*
+     * OSRM responded but did not provide a usable route.
+     * Use the deterministic fallback.
+     */
+    console.warn(
+      '[RoutingService] OSRM returned no usable route. Using fallback.'
+    );
+  } catch (error) {
+    /*
+     * Routing is an enhancement. A temporary OSRM outage,
+     * timeout, or rate limit should not break the delivery
+     * workflow.
+     */
+    console.warn(
+      `[RoutingService] OSRM unavailable: ${error.message}. Using fallback.`
+    );
+  }
+
+  return getFallbackRoute(
+    originCoords,
+    destCoords
+  );
+};
+
+/**
+ * Calculates an approximate route when road-routing data
+ * is unavailable.
+ *
+ * This is NOT a real road route. It is an estimate based on
+ * straight-line distance multiplied by an urban road factor.
+ */
+const getFallbackRoute = (
+  originCoords,
+  destCoords
+) => {
+  if (
+    !isValidCoordinates(originCoords) ||
+    !isValidCoordinates(destCoords)
+  ) {
+    throw new Error(
+      'Valid origin and destination coordinates are required.'
+    );
+  }
+
+  const straightLine =
+    calculateDistanceKm(
+      originCoords,
+      destCoords
+    );
+
+  if (
+    !Number.isFinite(straightLine) ||
+    straightLine < 0
+  ) {
+    throw new Error(
+      'Unable to calculate distance between the provided coordinates.'
+    );
+  }
+
+  /*
+   * Approximate urban road-network factor.
+   *
+   * This is only an estimate and should not be treated
+   * as an actual mapped road distance.
+   */
+  const ROAD_DISTANCE_FACTOR = 1.3;
+
+  const distanceKm =
+    Math.round(
+      straightLine *
+        ROAD_DISTANCE_FACTOR *
+        10
+    ) / 10;
+
+  /*
+   * Approximate average urban driving speed.
+   */
+  const AVERAGE_URBAN_SPEED_KMH = 30;
+
+  const durationMinutes =
+    Math.max(
+      2,
+      Math.round(
+        (distanceKm /
+          AVERAGE_URBAN_SPEED_KMH) *
+          60
+      )
+    );
 
   return {
     distanceKm,
@@ -66,7 +231,10 @@ const getFallbackRoute = (originCoords, destCoords) => {
     source: 'FALLBACK',
     geojson: {
       type: 'LineString',
-      coordinates: [originCoords, destCoords],
+      coordinates: [
+        originCoords,
+        destCoords,
+      ],
     },
   };
 };
@@ -74,4 +242,5 @@ const getFallbackRoute = (originCoords, destCoords) => {
 module.exports = {
   calculateRouteAndEta,
   getFallbackRoute,
+  isValidCoordinates,
 };

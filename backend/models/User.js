@@ -1,89 +1,334 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
+const coordinatesValidator = {
+  validator: function (value) {
+    if (!Array.isArray(value) || value.length !== 2) {
+      return false;
+    }
+
+    const [longitude, latitude] = value;
+
+    return (
+      typeof longitude === 'number' &&
+      typeof latitude === 'number' &&
+      Number.isFinite(longitude) &&
+      Number.isFinite(latitude) &&
+      longitude >= -180 &&
+      longitude <= 180 &&
+      latitude >= -90 &&
+      latitude <= 90
+    );
+  },
+  message:
+    'Coordinates must be [longitude, latitude] with valid geographic values.',
+};
+
 const UserSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, index: true },
-    passwordHash: { type: String, required: true },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 2,
+      maxlength: 100,
+    },
+
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true,
+      maxlength: 254,
+    },
+
+    /*
+     * Passwords are never stored directly.
+     * Auth controller hashes the password before creating a user.
+     */
+    passwordHash: {
+      type: String,
+      required: true,
+      select: false,
+    },
+
     role: {
       type: String,
       enum: ['DONOR', 'NGO', 'DRIVER', 'ADMIN'],
       required: true,
       index: true,
     },
-    phone: { type: String, required: true },
-    avatarUrl: { type: String },
-    isVerified: { type: Boolean, default: false },
 
-    // Geospatial Coordinates for Headquarters/Origin
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 30,
+    },
+
+    avatarUrl: {
+      type: String,
+      trim: true,
+    },
+
+    /*
+     * Donors are normally verified during registration.
+     * NGOs and drivers require administrative verification.
+     */
+    isVerified: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    /*
+     * Headquarters/origin location.
+     * GeoJSON format:
+     *
+     * {
+     *   type: 'Point',
+     *   coordinates: [longitude, latitude]
+     * }
+     */
     location: {
-      type: { type: String, enum: ['Point'], default: 'Point' },
-      coordinates: { type: [Number], required: true }, // [longitude, latitude]
-    },
-    address: {
-      street: String,
-      city: String,
-      postalCode: String,
-      formattedAddress: String,
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
+      },
+
+      coordinates: {
+        type: [Number],
+        required: true,
+        validate: coordinatesValidator,
+      },
     },
 
-    // Role-Specific Profile Extensions
+    address: {
+      street: {
+        type: String,
+        trim: true,
+        maxlength: 300,
+      },
+
+      city: {
+        type: String,
+        trim: true,
+        maxlength: 100,
+      },
+
+      postalCode: {
+        type: String,
+        trim: true,
+        maxlength: 20,
+      },
+
+      formattedAddress: {
+        type: String,
+        trim: true,
+        maxlength: 1000,
+      },
+    },
+
+    /*
+     * DONOR-specific information.
+     */
     donorProfile: {
       organizationType: {
         type: String,
-        enum: ['RESTAURANT', 'CATERER', 'HOTEL', 'SUPERMARKET', 'BAKERY', 'INDIVIDUAL'],
+        enum: [
+          'RESTAURANT',
+          'CATERER',
+          'HOTEL',
+          'SUPERMARKET',
+          'BAKERY',
+          'INDIVIDUAL',
+        ],
         default: 'RESTAURANT',
       },
-      licenseNumber: String,
+
+      licenseNumber: {
+        type: String,
+        trim: true,
+        maxlength: 100,
+      },
     },
 
+    /*
+     * NGO-specific information.
+     */
     ngoProfile: {
-      registrationNumber: String,
-      capacityDailyMeals: { type: Number, default: 100 },
-      allocatedCapacity: { type: Number, default: 0 },
-      storageFacilities: {
-        hasRefrigeration: { type: Boolean, default: false },
-        hasFreezer: { type: Boolean, default: false },
-        dryStorageAvailable: { type: Boolean, default: true },
+      registrationNumber: {
+        type: String,
+        trim: true,
+        maxlength: 100,
       },
+
+      capacityDailyMeals: {
+        type: Number,
+        default: 100,
+        min: 0,
+      },
+
+      allocatedCapacity: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+
+      storageFacilities: {
+        hasRefrigeration: {
+          type: Boolean,
+          default: false,
+        },
+
+        hasFreezer: {
+          type: Boolean,
+          default: false,
+        },
+
+        dryStorageAvailable: {
+          type: Boolean,
+          default: true,
+        },
+      },
+
       acceptedFoodTypes: [
         {
           type: String,
-          enum: ['COOKED_MEALS', 'RAW_PRODUCE', 'PACKAGED_FOOD', 'BAKERY', 'DAIRY'],
+          enum: [
+            'COOKED_MEALS',
+            'RAW_PRODUCE',
+            'PACKAGED_FOOD',
+            'BAKERY',
+            'DAIRY',
+          ],
         },
       ],
+
       dietaryRestrictionsAccepted: [
         {
           type: String,
-          enum: ['VEG', 'NON_VEG', 'VEGAN', 'ANY'],
+          enum: [
+            'VEG',
+            'NON_VEG',
+            'VEGAN',
+            'ANY',
+          ],
         },
       ],
     },
 
+    /*
+     * DRIVER-specific information.
+     */
     driverProfile: {
       vehicleType: {
         type: String,
-        enum: ['BIKE', 'CAR', 'VAN', 'REFRIGERATED_VAN', 'TRUCK'],
+        enum: [
+          'BIKE',
+          'CAR',
+          'VAN',
+          'REFRIGERATED_VAN',
+          'TRUCK',
+        ],
         default: 'CAR',
       },
-      licenseNumber: String,
-      isAvailable: { type: Boolean, default: true, index: true },
-      activeDeliveryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Delivery' },
+
+      licenseNumber: {
+        type: String,
+        trim: true,
+        maxlength: 100,
+      },
+
+      isAvailable: {
+        type: Boolean,
+        default: true,
+        index: true,
+      },
+
+      activeDeliveryId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Delivery',
+        default: null,
+      },
+
+      /*
+       * Driver location is optional until the driver actually
+       * shares their current position.
+       *
+       * Do NOT default this to [0, 0].
+       */
       currentLocation: {
-        type: { type: String, enum: ['Point'], default: 'Point' },
-        coordinates: { type: [Number], default: [0, 0] },
+        type: {
+          type: String,
+          enum: ['Point'],
+          default: 'Point',
+        },
+
+        coordinates: {
+          type: [Number],
+          validate: coordinatesValidator,
+        },
       },
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-UserSchema.index({ location: '2dsphere' });
-UserSchema.index({ 'driverProfile.currentLocation': '2dsphere' });
+/*
+ * Geospatial indexes.
+ */
+UserSchema.index({
+  location: '2dsphere',
+});
 
-UserSchema.methods.comparePassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.passwordHash);
+UserSchema.index({
+  'driverProfile.currentLocation': '2dsphere',
+});
+
+/*
+ * Useful for finding available drivers.
+ */
+UserSchema.index({
+  role: 1,
+  isVerified: 1,
+  'driverProfile.isAvailable': 1,
+});
+
+/*
+ * Useful for finding verified NGOs.
+ */
+UserSchema.index({
+  role: 1,
+  isVerified: 1,
+});
+
+/*
+ * Compare a plaintext password with the stored hash.
+ */
+UserSchema.methods.comparePassword = async function (
+  enteredPassword
+) {
+  if (
+    typeof enteredPassword !== 'string' ||
+    !enteredPassword
+  ) {
+    return false;
+  }
+
+  if (!this.passwordHash) {
+    return false;
+  }
+
+  return bcrypt.compare(
+    enteredPassword,
+    this.passwordHash
+  );
 };
 
 module.exports = mongoose.model('User', UserSchema);

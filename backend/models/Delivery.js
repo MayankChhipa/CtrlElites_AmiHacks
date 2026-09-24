@@ -1,11 +1,64 @@
 const mongoose = require('mongoose');
 
+const coordinatesValidator = {
+  validator: function (value) {
+    if (!Array.isArray(value) || value.length !== 2) {
+      return false;
+    }
+
+    const [longitude, latitude] = value;
+
+    return (
+      typeof longitude === 'number' &&
+      typeof latitude === 'number' &&
+      Number.isFinite(longitude) &&
+      Number.isFinite(latitude) &&
+      longitude >= -180 &&
+      longitude <= 180 &&
+      latitude >= -90 &&
+      latitude <= 90
+    );
+  },
+  message:
+    'Coordinates must be [longitude, latitude] with valid geographic values.',
+};
+
 const DeliverySchema = new mongoose.Schema(
   {
-    donationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Donation', required: true, unique: true },
-    driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    donorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    ngoId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    /*
+     * One donation can have only one Delivery document.
+     *
+     * CANCELLED deliveries are reused by the delivery controller
+     * when another driver claims the same donation.
+     */
+    donationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Donation',
+      required: true,
+      unique: true,
+      index: true,
+    },
+
+    driverId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
+
+    donorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
+
+    ngoId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
 
     status: {
       type: String,
@@ -21,42 +74,159 @@ const DeliverySchema = new mongoose.Schema(
         'CANCELLED',
       ],
       default: 'ASSIGNED',
+      required: true,
       index: true,
     },
 
-    pickupCoords: { type: [Number], required: true }, // [longitude, latitude]
-    dropoffCoords: { type: [Number], required: true }, // [longitude, latitude]
+    /*
+     * [longitude, latitude]
+     */
+    pickupCoords: {
+      type: [Number],
+      required: true,
+      validate: coordinatesValidator,
+    },
+
+    /*
+     * [longitude, latitude]
+     */
+    dropoffCoords: {
+      type: [Number],
+      required: true,
+      validate: coordinatesValidator,
+    },
 
     routeSummary: {
-      distanceKm: Number,
-      durationMinutes: Number,
-      encodedGeometry: String,
-      geojson: mongoose.Schema.Types.Mixed,
+      distanceKm: {
+        type: Number,
+        min: 0,
+      },
+
+      durationMinutes: {
+        type: Number,
+        min: 0,
+      },
+
+      encodedGeometry: {
+        type: String,
+        trim: true,
+      },
+
+      geojson: {
+        type: mongoose.Schema.Types.Mixed,
+      },
     },
 
+    /*
+     * Driver's latest GPS position.
+     *
+     * GeoJSON Point format:
+     * {
+     *   type: 'Point',
+     *   coordinates: [longitude, latitude]
+     * }
+     */
     currentLocation: {
-      type: { type: String, enum: ['Point'], default: 'Point' },
-      coordinates: [Number],
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
+      },
+
+      coordinates: {
+        type: [Number],
+        validate: coordinatesValidator,
+      },
     },
+
+    /*
+     * Historical GPS positions collected during delivery.
+     */
     breadcrumbs: [
       {
-        coordinates: [Number],
-        timestamp: { type: Date, default: Date.now },
+        coordinates: {
+          type: [Number],
+          validate: coordinatesValidator,
+        },
+
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
       },
     ],
 
-    pickupConfirmedAt: Date,
-    deliveredConfirmedAt: Date,
+    /*
+     * Set when the driver confirms pickup.
+     */
+    pickupConfirmedAt: {
+      type: Date,
+    },
 
+    /*
+     * Set when the driver confirms delivery.
+     */
+    deliveredConfirmedAt: {
+      type: Date,
+    },
+
+    /*
+     * Proof submitted at delivery time.
+     */
     proofOfDelivery: {
-      photoUrl: String,
-      ngoFeedbackNote: String,
-      foodConditionRating: { type: Number, min: 1, max: 5 },
+      photoUrl: {
+        type: String,
+        trim: true,
+      },
+
+      ngoFeedbackNote: {
+        type: String,
+        trim: true,
+        maxlength: 2000,
+      },
+
+      foodConditionRating: {
+        type: Number,
+        min: 1,
+        max: 5,
+      },
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-DeliverySchema.index({ currentLocation: '2dsphere' });
+/*
+ * Allows MongoDB geospatial queries against the driver's
+ * current location.
+ */
+DeliverySchema.index({
+  currentLocation: '2dsphere',
+});
+
+/*
+ * Useful for finding active deliveries for a driver.
+ */
+DeliverySchema.index({
+  driverId: 1,
+  status: 1,
+});
+
+/*
+ * Useful for finding deliveries associated with an NGO.
+ */
+DeliverySchema.index({
+  ngoId: 1,
+  status: 1,
+});
+
+/*
+ * Useful for donor delivery history.
+ */
+DeliverySchema.index({
+  donorId: 1,
+  createdAt: -1,
+});
 
 module.exports = mongoose.model('Delivery', DeliverySchema);
