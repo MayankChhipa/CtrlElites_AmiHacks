@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { HeartHandshake, UserPlus, AlertCircle, Building2, Truck, Utensils } from 'lucide-react';
+import { UserPlus, AlertCircle, Building2, Truck, Utensils } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
@@ -19,6 +19,7 @@ const Register = () => {
   const [capacityDailyMeals, setCapacityDailyMeals] = useState(120);
   const [hasRefrigeration, setHasRefrigeration] = useState(true);
   const [vehicleType, setVehicleType] = useState('CAR');
+  const [verificationDocument, setVerificationDocument] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,6 +52,7 @@ const Register = () => {
         email,
         password,
         role,
+        verificationDocument,
         phone,
         address,
         coordinates: [77.209 + (Math.random() - 0.5) * 0.05, 28.6139 + (Math.random() - 0.5) * 0.05],
@@ -72,17 +74,17 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-lg space-y-6">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-[#F9C74F]">
+      <div className="w-full max-w-2xl space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 items-center justify-center shadow-lg shadow-emerald-500/25 mb-1">
-            <HeartHandshake className="w-8 h-8 text-white" />
+          <div className="inline-flex w-14 h-14 rounded-2xl bg-[#FFF7E6] items-center justify-center shadow-[0_10px_25px_rgba(185,28,28,0.18)] mb-1 border-2 border-[#E53935]/10">
+            <span className="text-2xl font-black tracking-tight text-[#E53935]">FR</span>
           </div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-white">Join the Network</h2>
-          <p className="text-sm text-slate-400">Connect surplus food with shelters, community kitchens & rescues</p>
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-[#B91C1C]">Join the Network</h2>
+          <p className="text-sm text-[#7C2D12]">Connect surplus food with shelters, community kitchens & rescues</p>
         </div>
 
-        <div className="glass-panel p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-700/80">
+        <div className="bg-[#FFF7E6] p-6 sm:p-8 rounded-[2rem] shadow-[0_18px_45px_rgba(127,29,29,0.16)] border border-[#F4D6A0]">
           {error && (
             <div className="mb-5 p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-center gap-2.5 text-rose-300 text-sm">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -91,14 +93,14 @@ const Register = () => {
           )}
 
           {/* Role Selector Tabs */}
-          <div className="grid grid-cols-3 gap-2 mb-6 p-1 bg-slate-900/80 rounded-xl border border-slate-800">
+          <div className="grid grid-cols-3 gap-2 mb-6 p-1 bg-[#FDE9B0] rounded-2xl border border-[#F2CF7A]">
             <button
               type="button"
               onClick={() => setRole('DONOR')}
-              className={`py-2 px-3 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 transition-all ${
+              className={`py-3 px-3 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all ${
                 role === 'DONOR'
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#E53935] text-white shadow-md shadow-red-700/25'
+                  : 'text-[#8B4513] hover:text-[#B91C1C]'
               }`}
             >
               <Utensils className="w-4 h-4" />
@@ -107,10 +109,10 @@ const Register = () => {
             <button
               type="button"
               onClick={() => setRole('NGO')}
-              className={`py-2 px-3 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 transition-all ${
+              className={`py-3 px-3 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all ${
                 role === 'NGO'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#E53935] text-white shadow-md shadow-red-700/25'
+                  : 'text-[#8B4513] hover:text-[#B91C1C]'
               }`}
             >
               <Building2 className="w-4 h-4" />
@@ -119,10 +121,10 @@ const Register = () => {
             <button
               type="button"
               onClick={() => setRole('DRIVER')}
-              className={`py-2 px-3 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 transition-all ${
+              className={`py-3 px-3 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all ${
                 role === 'DRIVER'
-                  ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#E53935] text-white shadow-md shadow-red-700/25'
+                  : 'text-[#8B4513] hover:text-[#B91C1C]'
               }`}
             >
               <Truck className="w-4 h-4" />
@@ -132,7 +134,7 @@ const Register = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#7C2D12] mb-1.5">
                 {role === 'DONOR' ? 'Organization or Donor Name' : role === 'NGO' ? 'Shelter / Kitchen Name' : 'Full Name'}
               </label>
               <input
@@ -141,13 +143,13 @@ const Register = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={role === 'DONOR' ? 'Grand Vista Restaurant' : role === 'NGO' ? 'Hope Kitchen' : 'Alex Driver'}
-                className="w-full px-4 py-2.5 rounded-xl glass-input text-sm placeholder:text-slate-500"
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E8C98F] text-[#431407] text-sm placeholder:text-[#B98B62] outline-none transition-all focus:border-[#E53935] focus:ring-4 focus:ring-red-100"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#7C2D12] mb-1.5">
                   Email
                 </label>
                 <input
@@ -156,12 +158,12 @@ const Register = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="contact@org.com"
-                  className="w-full px-4 py-2.5 rounded-xl glass-input text-sm placeholder:text-slate-500"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E8C98F] text-[#431407] text-sm placeholder:text-[#B98B62] outline-none transition-all focus:border-[#E53935] focus:ring-4 focus:ring-red-100"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#7C2D12] mb-1.5">
                   Phone
                 </label>
                 <input
@@ -170,13 +172,13 @@ const Register = () => {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+1 555-0199"
-                  className="w-full px-4 py-2.5 rounded-xl glass-input text-sm placeholder:text-slate-500"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E8C98F] text-[#431407] text-sm placeholder:text-[#B98B62] outline-none transition-all focus:border-[#E53935] focus:ring-4 focus:ring-red-100"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#7C2D12] mb-1.5">
                 Password
               </label>
               <input
@@ -185,12 +187,12 @@ const Register = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-xl glass-input text-sm placeholder:text-slate-500"
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E8C98F] text-[#431407] text-sm placeholder:text-[#B98B62] outline-none transition-all focus:border-[#E53935] focus:ring-4 focus:ring-red-100"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#7C2D12] mb-1.5">
                 Operating Address / Hub
               </label>
               <input
@@ -198,20 +200,34 @@ const Register = () => {
                 required
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl glass-input text-sm placeholder:text-slate-500"
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E8C98F] text-[#431407] text-sm placeholder:text-[#B98B62] outline-none transition-all focus:border-[#E53935] focus:ring-4 focus:ring-red-100"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#7C2D12] mb-1.5">
+                Government recognized proof
+              </label>
+              <input
+                type="file"
+                required
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                onChange={(e) => setVerificationDocument(e.target.files?.[0] || null)}
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E8C98F] text-[#431407] text-sm"
+              />
+              <p className="mt-1 text-xs text-[#7C2D12]">Upload a clear JPG, PNG, WebP, or PDF (up to 10 MB). Admin approval is required before account actions are enabled.</p>
             </div>
 
             {/* Dynamic Role Profile Options */}
             {role === 'DONOR' && (
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#7C2D12] mb-1.5">
                   Donor Type
                 </label>
                 <select
                   value={orgType}
                   onChange={(e) => setOrgType(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl glass-input text-sm bg-slate-900 text-white"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E8C98F] text-[#431407] text-sm outline-none transition-all focus:border-[#E53935] focus:ring-4 focus:ring-red-100"
                 >
                   <option value="RESTAURANT">Restaurant / Eatery</option>
                   <option value="CATERER">Caterer / Events Banquet</option>
@@ -226,7 +242,7 @@ const Register = () => {
             {role === 'NGO' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#7C2D12] mb-1.5">
                     Daily Capacity (Meals)
                   </label>
                   <input
@@ -244,9 +260,9 @@ const Register = () => {
                     id="refrigeration"
                     checked={hasRefrigeration}
                     onChange={(e) => setHasRefrigeration(e.target.checked)}
-                    className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-500"
+                    className="w-4 h-4 rounded text-[#E53935] focus:ring-[#E53935]"
                   />
-                  <label htmlFor="refrigeration" className="text-xs text-slate-300 font-medium">
+                  <label htmlFor="refrigeration" className="text-xs text-[#7C2D12] font-semibold">
                     Has Refrigerator / Cold Storage
                   </label>
                 </div>
@@ -255,13 +271,13 @@ const Register = () => {
 
             {role === 'DRIVER' && (
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#7C2D12] mb-1.5">
                   Rescue Vehicle Type
                 </label>
                 <select
                   value={vehicleType}
                   onChange={(e) => setVehicleType(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl glass-input text-sm bg-slate-900 text-white"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E8C98F] text-[#431407] text-sm outline-none transition-all focus:border-[#E53935] focus:ring-4 focus:ring-red-100"
                 >
                   <option value="CAR">Personal Car / Hatchback</option>
                   <option value="BIKE">Two-Wheeler / Scooter</option>
@@ -275,7 +291,7 @@ const Register = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-4 py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+              className="w-full mt-4 py-3 px-4 bg-[#E53935] hover:bg-[#C62828] text-white font-bold rounded-full shadow-[0_10px_22px_rgba(229,57,53,0.28)] flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -289,9 +305,9 @@ const Register = () => {
           </form>
         </div>
 
-        <p className="text-center text-sm text-slate-400">
+        <p className="text-center text-sm text-[#7C2D12]">
           Already registered?{' '}
-          <Link to="/login" className="font-semibold text-emerald-400 hover:text-emerald-300 transition-colors">
+          <Link to="/login" className="font-bold text-[#C62828] hover:text-[#9F1239] transition-colors">
             Log in instead
           </Link>
         </p>

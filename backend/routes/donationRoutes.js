@@ -10,8 +10,33 @@ const {
   getNearbyDonations,
 } = require('../controllers/donationController');
 
+<<<<<<< HEAD
 const { protect } = require('../middlewares/authMiddleware');
 const { authorize } = require('../middlewares/roleMiddleware');
+=======
+const {
+  protect,
+} = require('../middlewares/authMiddleware');
+
+const {
+  authorize,
+  requireVerified,
+} = require('../middlewares/roleMiddleware');
+
+/*
+ * Create a donation.
+ *
+ * Only donors can create donations.
+ * Admin is allowed for administrative operations/testing.
+ */
+router.post(
+  '/',
+  protect,
+  authorize('DONOR', 'ADMIN'),
+  requireVerified,
+  createDonation
+);
+>>>>>>> 426e454d6872deeff76f5ef1d8759398ed1cb131
 
 /*
  * Get the authenticated donor's own donations.

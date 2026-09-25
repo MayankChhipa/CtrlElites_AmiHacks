@@ -5,6 +5,7 @@ const Donation = require('../models/Donation');
 const Delivery = require('../models/Delivery');
 const Match = require('../models/Match');
 const ImpactLog = require('../models/ImpactLog');
+const { getVerificationDocumentUrl } = require('../config/cloudinary');
 
 const {
   enrichDonationWithUrgency,
@@ -101,7 +102,7 @@ const listUsers = async (req, res) => {
 
     const [users, total] = await Promise.all([
       User.find(query)
-        .select('-passwordHash')
+        .select('-passwordHash -verificationDocument.url -verificationDocument.publicId')
         .sort({ createdAt: -1 })
         .skip(pagination.skip)
         .limit(pagination.limit)
@@ -143,7 +144,7 @@ const getUserById = async (req, res) => {
     }
 
     const user = await User.findById(id)
-      .select('-passwordHash')
+      .select('-passwordHash -verificationDocument.url -verificationDocument.publicId')
       .lean();
 
     if (!user) {
@@ -180,12 +181,25 @@ const verifyUser = async (req, res) => {
       });
     }
 
-    const { isVerified = true } = req.body;
+    const { decision } = req.body;
+    let isVerified = req.body.isVerified;
+    let verificationStatus;
 
-    if (typeof isVerified !== 'boolean') {
+    if (decision === 'APPROVE') {
+      isVerified = true;
+      verificationStatus = 'APPROVED';
+    } else if (decision === 'REJECT') {
+      isVerified = false;
+      verificationStatus = 'REJECTED';
+    } else if (decision === 'REVOKE') {
+      isVerified = false;
+      verificationStatus = 'PENDING';
+    } else if (typeof isVerified === 'boolean') {
+      verificationStatus = isVerified ? 'APPROVED' : 'REVOKED';
+    } else {
       return res.status(400).json({
         success: false,
-        message: 'isVerified must be a boolean.',
+        message: 'Provide a valid decision or isVerified boolean.',
       });
     }
 
@@ -198,18 +212,24 @@ const verifyUser = async (req, res) => {
       });
     }
 
-    // Only NGO and DRIVER accounts require this verification flow.
-    if (
-      !['NGO', 'DRIVER'].includes(existingUser.role)
-    ) {
+    if (!['NGO', 'DRIVER', 'DONOR'].includes(existingUser.role)) {
       return res.status(400).json({
         success: false,
         message:
-          'Only NGO and DRIVER accounts can be verified through this endpoint.',
+          'Only donor, NGO, and driver accounts can be verified.',
       });
     }
 
+    if (isVerified && !existingUser.verificationDocument?.url && !existingUser.verificationDocument?.publicId) {
+      return res.status(400).json({ success: false, message: 'This account has no verification document.' });
+    }
+
+    if (['APPROVED', 'REJECTED'].includes(verificationStatus) && String(existingUser.verificationDocument?.reviewedBy || '') !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: 'View this user’s proof before approving or rejecting the account.' });
+    }
+
     existingUser.isVerified = isVerified;
+    existingUser.verificationStatus = verificationStatus;
 
     await existingUser.save();
 
@@ -217,13 +237,11 @@ const verifyUser = async (req, res) => {
       .toObject();
 
     delete user.passwordHash;
+    delete user.verificationDocument;
 
     return res.status(200).json({
       success: true,
-      message: `User ${isVerified
-          ? 'verified'
-          : 'rejected / unverified'
-        } successfully.`,
+      message: `User ${verificationStatus.toLowerCase()} successfully.`,
       user,
     });
   } catch (error) {
@@ -233,6 +251,22 @@ const verifyUser = async (req, res) => {
       success: false,
       message: 'Failed to update user verification.',
     });
+  }
+};
+
+const getVerificationDocument = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('verificationDocument');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+    const url = getVerificationDocumentUrl(user.verificationDocument);
+    if (!url) return res.status(404).json({ success: false, message: 'Verification document not found.' });
+    user.verificationDocument.reviewedAt = new Date();
+    user.verificationDocument.reviewedBy = req.user._id;
+    await user.save();
+    return res.status(200).json({ success: true, url });
+  } catch (error) {
+    console.error('getVerificationDocument error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to load verification document.' });
   }
 };
 
@@ -733,6 +767,7 @@ module.exports = {
   listUsers,
   getUserById,
   verifyUser,
+  getVerificationDocument,
   listAllDonations,
   getActiveDeliveries,
   getExpiringDonations,

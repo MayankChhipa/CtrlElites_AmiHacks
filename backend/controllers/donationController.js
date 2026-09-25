@@ -615,12 +615,13 @@ const getAllDonations = async (req, res) => {
       )
       .populate(
         'matchedNgoId',
-        'name phone address'
+        'name phone address location'
       )
       .populate(
         'assignedDriverId',
         'name phone driverProfile'
       )
+      .populate('activeDeliveryId')
       .sort({ createdAt: -1 });
 
     const enriched = donations.map((donation) =>

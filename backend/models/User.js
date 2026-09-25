@@ -24,6 +24,22 @@ const coordinatesValidator = {
     'Coordinates must be [longitude, latitude] with valid geographic values.',
 };
 
+const GeoPointSchema = new mongoose.Schema(
+  {
+    type: {
+      type: String,
+      enum: ['Point'],
+      required: true,
+    },
+    coordinates: {
+      type: [Number],
+      required: true,
+      validate: coordinatesValidator,
+    },
+  },
+  { _id: false }
+);
+
 const UserSchema = new mongoose.Schema(
   {
     name: {
@@ -74,13 +90,26 @@ const UserSchema = new mongoose.Schema(
     },
 
     /*
-     * Donors are normally verified during registration.
-     * NGOs and drivers require administrative verification.
+     * Donors, NGOs, and drivers require administrative verification.
      */
     isVerified: {
       type: Boolean,
       default: false,
       index: true,
+    },
+    verificationStatus: {
+      type: String,
+      enum: ['PENDING', 'APPROVED', 'REJECTED', 'REVOKED'],
+      default: 'PENDING',
+      index: true,
+    },
+
+    verificationDocument: {
+      url: { type: String, trim: true },
+      originalName: { type: String, trim: true, maxlength: 255 },
+      uploadedAt: { type: Date },
+      reviewedAt: { type: Date },
+      reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     },
 
     /*
@@ -262,16 +291,8 @@ const UserSchema = new mongoose.Schema(
        * Do NOT default this to [0, 0].
        */
       currentLocation: {
-        type: {
-          type: String,
-          enum: ['Point'],
-          default: 'Point',
-        },
-
-        coordinates: {
-          type: [Number],
-          validate: coordinatesValidator,
-        },
+        type: GeoPointSchema,
+        default: undefined,
       },
     },
   },

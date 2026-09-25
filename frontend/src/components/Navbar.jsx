@@ -88,7 +88,7 @@ const Navbar = () => {
               </div>
               <div className="flex flex-col">
                 <span className="font-extrabold text-xl tracking-tight text-red-950">
-                  Surplus-to-Shelter
+                  FoodRescue
                 </span>
                 <span className="text-[10px] text-stone-500 uppercase tracking-widest font-bold">
                   Zero Hunger Rescue

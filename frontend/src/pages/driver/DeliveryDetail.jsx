@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Truck,
@@ -39,7 +39,7 @@ const DeliveryDetail = () => {
   // =========================
   // FETCH DELIVERY
   // =========================
-  const fetchDelivery = async () => {
+  const fetchDelivery = useCallback (async () => {
     try {
       const res = await api.get(`/deliveries/${id}`);
 
@@ -65,7 +65,12 @@ const DeliveryDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  const donationId =
+    delivery?.donationId?._id ||
+    delivery?.donationId ||
+    null;
 
   // =========================
   // FETCH DELIVERY
@@ -80,151 +85,29 @@ const DeliveryDetail = () => {
   useEffect(() => {
     if (!delivery) return;
 
+  useEffect(() => {
     const socket = getSocket();
-
-    if (!socket) return;
-
-    const donationId =
-      delivery.donationId?._id ||
-      delivery.donationId;
-
-    // -------------------------
-    // JOIN DONATION ROOM
-    // -------------------------
-    if (donationId) {
-      socket.emit(
-        'join_donation',
-        donationId
-      );
+    if (!socket || !donationId) {
+      return undefined;
     }
 
-    // -------------------------
-    // JOIN DELIVERY TRACKING
-    // -------------------------
-    socket.emit(
-      'join_delivery_tracking',
-      {
-        deliveryId: id,
-      }
-    );
+    socket.emit('join_donation', donationId);
 
-    // -------------------------
-    // LIVE DRIVER LOCATION
-    // -------------------------
-    const handleDriverLocation = (data) => {
-      if (
-        !data ||
-        data.deliveryId?.toString() !== id?.toString()
-      ) {
-        return;
-      }
-
-      if (
-        Array.isArray(data.coordinates) &&
-        data.coordinates.length === 2
-      ) {
-        setDriverCoords(data.coordinates);
-      }
-    };
-
-    socket.on(
-      'driver_location_updated',
-      handleDriverLocation
-    );
-
-    // -------------------------
-    // DELIVERY STATUS UPDATES
-    // -------------------------
     const handleUpdate = () => {
       fetchDelivery();
     };
 
-    socket.on(
-      'pickup_confirmed',
-      handleUpdate
-    );
+    socket.on('pickup_confirmed', handleUpdate);
+    socket.on('delivery_completed', handleUpdate);
+    socket.on('delivery_verified', handleUpdate);
 
-    socket.on(
-      'delivery_completed',
-      handleUpdate
-    );
-
-    socket.on(
-      'delivery_verified',
-      handleUpdate
-    );
-
-    // -------------------------
-    // DRIVER GPS TRACKING
-    // -------------------------
-    let watchId = null;
-
-    /*
-     * Only start GPS tracking if this
-     * delivery belongs to the current driver.
-     */
-    const currentUserId =
-      delivery.driverId?._id ||
-      delivery.driverId;
-
-    const token =
-      localStorage.getItem('token');
-
-    if (
-      currentUserId &&
-      token &&
-      navigator.geolocation
-    ) {
-      watchId =
-        navigator.geolocation.watchPosition(
-          (position) => {
-            const {
-              latitude,
-              longitude,
-              heading,
-              speed,
-            } = position.coords;
-
-            const coordinates = [
-              longitude,
-              latitude,
-            ];
-
-            // Update our own map immediately
-            setDriverCoords(coordinates);
-
-            // Send location to backend
-            if (socket.connected) {
-              socket.emit(
-                'send_driver_location',
-                {
-                  deliveryId: id,
-                  coordinates,
-                  heading:
-                    typeof heading === 'number'
-                      ? heading
-                      : null,
-                  speed:
-                    typeof speed === 'number'
-                      ? speed
-                      : null,
-                }
-              );
-            }
-          },
-          (geoError) => {
-            console.warn(
-              'Driver location error:',
-              geoError.message
-            );
-          },
-          {
-            enableHighAccuracy: true,
-            maximumAge: 5000,
-            timeout: 10000,
-          }
-        );
-    }
+    return () => {
+      socket.emit('leave_donation', donationId);
+      socket.off('pickup_confirmed', handleUpdate);
+      socket.off('delivery_completed', handleUpdate);
+      socket.off('delivery_verified', handleUpdate);
+    };
+  }, [donationId, fetchDelivery]);
 
     // -------------------------
     // CLEANUP

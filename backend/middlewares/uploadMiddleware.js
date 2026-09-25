@@ -9,6 +9,7 @@ const ALLOWED_IMAGE_TYPES = new Set([
   'image/png',
   'image/webp',
   'image/gif',
+  'application/pdf',
 ]);
 
 const fileFilter = (req, file, cb) => {
@@ -22,7 +23,7 @@ const fileFilter = (req, file, cb) => {
   if (!ALLOWED_IMAGE_TYPES.has(file.mimetype.toLowerCase())) {
     return cb(
       new Error(
-        'Only JPEG, PNG, WebP, and GIF image files are supported.'
+        'Upload a JPEG, PNG, WebP, GIF, or PDF document.'
       ),
       false
     );
@@ -35,7 +36,7 @@ const upload = multer({
   storage,
 
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5 MB per file
+    fileSize: 10 * 1024 * 1024, // 10 MB per file
     files: 10, // Maximum files per request
   },
 

@@ -6,6 +6,7 @@ const {
   listUsers,
   getUserById,
   verifyUser,
+  getVerificationDocument,
   listAllDonations,
   getActiveDeliveries,
   getExpiringDonations,
@@ -35,6 +36,7 @@ router.use(authorize('ADMIN'));
 router.get('/users', listUsers);
 router.get('/users/:id', getUserById);
 router.patch('/users/:id/verify', verifyUser);
+router.get('/users/:id/verification-document', getVerificationDocument);
 
 /*
  * Donation monitoring

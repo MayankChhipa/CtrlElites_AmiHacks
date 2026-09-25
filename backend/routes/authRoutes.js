@@ -11,11 +11,12 @@ const {
 const {
   protect,
 } = require('../middlewares/authMiddleware');
+const upload = require('../middlewares/uploadMiddleware');
 
 /*
  * Public authentication routes
  */
-router.post('/register', register);
+router.post('/register', upload.single('verificationDocument'), register);
 router.post('/login', login);
 
 /*

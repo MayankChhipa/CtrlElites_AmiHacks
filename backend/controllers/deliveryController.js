@@ -48,6 +48,21 @@ const ACTIVE_DELIVERY_STATUSES = [
 
 const getUserId = (req) => req.user?._id || req.user?.id;
 
+const normalizeId = (value) => {
+  if (!value) {
+    return '';
+  }
+
+  const id =
+    typeof value === 'object' && value._id
+      ? value._id
+      : value;
+
+  return typeof id?.toString === 'function'
+    ? id.toString()
+    : '';
+};
+
 const isAdmin = (req) => req.user?.role === 'ADMIN';
 
 const isValidObjectId = (id) =>
@@ -88,15 +103,13 @@ const canAccessDelivery = (delivery, req) => {
     return false;
   }
 
-  const userIdString = String(userId);
+  const userIdString = normalizeId(userId);
 
   return [
     delivery.driverId,
     delivery.donorId,
     delivery.ngoId,
-  ].some(
-    (id) => id && String(id) === userIdString
-  );
+  ].some((id) => normalizeId(id) === userIdString);
 };
 
 const isAssignedDriver = (delivery, req) => {
@@ -105,7 +118,7 @@ const isAssignedDriver = (delivery, req) => {
   return (
     userId &&
     delivery.driverId &&
-    String(delivery.driverId) === String(userId)
+    normalizeId(delivery.driverId) === normalizeId(userId)
   );
 };
 

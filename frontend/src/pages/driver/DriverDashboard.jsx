@@ -20,7 +20,11 @@ const DriverDashboard = () => {
   const [activeDeliveries, setActiveDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [claimingId, setClaimingId] = useState(null);
+  const [finishingDeliveryId, setFinishingDeliveryId] = useState(null);
+  const [deliveryOtp, setDeliveryOtp] = useState('');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const fetchData = async () => {
     try {
@@ -78,6 +82,30 @@ const DriverDashboard = () => {
     }
   };
 
+  const handleFinishDelivery = async (deliveryId) => {
+    setFinishingDeliveryId(deliveryId);
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      const res = await api.post(`/deliveries/${deliveryId}/deliver`, {
+        otp: deliveryOtp.trim(),
+        notes: deliveryNotes.trim(),
+      });
+
+      if (res.data.success) {
+        setDeliveryOtp('');
+        setDeliveryNotes('');
+        setSuccessMessage('Delivery completed. The shelter can now verify receipt.');
+        await fetchData();
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to finish delivery');
+    } finally {
+      setFinishingDeliveryId(null);
+    }
+  };
+
   const hasActiveDelivery = activeDeliveries.length > 0;
 
   const getStatusBadge = (status) => {
@@ -121,6 +149,13 @@ const DriverDashboard = () => {
           <div className="p-4 rounded-2xl bg-red-100 border border-red-300 flex items-center gap-3 text-red-900 font-bold text-sm shadow-sm">
             <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="p-4 rounded-2xl bg-emerald-100 border border-emerald-300 flex items-center gap-3 text-emerald-900 font-bold text-sm shadow-sm">
+            <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" />
+            <span>{successMessage}</span>
           </div>
         )}
 
@@ -169,6 +204,55 @@ const DriverDashboard = () => {
                 <ArrowRight className="w-4 h-4 stroke-[3]" />
               </Link>
             </div>
+
+            {activeDeliveries[0].status === 'ARRIVED_AT_DROPOFF' && (
+              <div className="relative z-10 space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4">
+                <div>
+                  <h3 className="text-sm font-black text-emerald-950">Finish Delivery</h3>
+                  <p className="mt-1 text-xs font-medium text-stone-600">
+                    Hand the food to shelter staff and enter their delivery OTP to complete the handoff.
+                  </p>
+                </div>
+                <label className="block">
+                  <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-stone-600">
+                    Shelter Delivery OTP
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={deliveryOtp}
+                    onChange={(event) => setDeliveryOtp(event.target.value)}
+                    placeholder="Enter OTP from shelter staff"
+                    className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-center font-mono text-lg font-bold tracking-widest text-emerald-950 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                  />
+                </label>
+                <input
+                  type="text"
+                  value={deliveryNotes}
+                  onChange={(event) => setDeliveryNotes(event.target.value)}
+                  placeholder="Delivery note (optional)"
+                  className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-xs text-stone-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleFinishDelivery(activeDeliveries[0]._id)}
+                  disabled={
+                    finishingDeliveryId === activeDeliveries[0]._id ||
+                    !deliveryOtp.trim()
+                  }
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-5 py-3 text-xs font-black text-white shadow-md transition-colors hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>
+                    {finishingDeliveryId === activeDeliveries[0]._id
+                      ? 'Finishing Delivery...'
+                      : 'Finish Delivery'}
+                  </span>
+                </button>
+              </div>
+            )}
 
             {/* Background Ambient Glow */}
             <div className="absolute -right-12 -top-12 w-48 h-48 bg-orange-200/40 rounded-full blur-2xl pointer-events-none" />
