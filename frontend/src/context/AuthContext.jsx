@@ -52,7 +52,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (userData) => {
-    const res = await api.post('/auth/register', userData);
+    const formData = new FormData();
+    Object.entries(userData).forEach(([key, value]) => {
+      if (key === 'verificationDocument') formData.append(key, value);
+      else formData.append(key, typeof value === 'object' ? JSON.stringify(value) : value);
+    });
+    const res = await api.post('/auth/register', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     if (res.data.success) {
       const { token: newToken, user: newUser } = res.data;
       localStorage.setItem('token', newToken);

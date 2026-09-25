@@ -65,10 +65,9 @@ const authorize = (...roles) => {
 /**
  * Require an authenticated and verified account.
  *
- * Admins and donors are considered verified by the
- * application's current account policy.
+ * Admins are exempt. Donors, NGOs, and drivers must be approved.
  *
- * NGOs and drivers must have isVerified === true.
+ * Other user accounts must have isVerified === true.
  */
 const requireVerified = (req, res, next) => {
   if (!req.user) {
@@ -84,7 +83,7 @@ const requireVerified = (req, res, next) => {
    * These roles do not require the NGO/driver verification
    * gate according to the current application policy.
    */
-  if (['ADMIN', 'DONOR'].includes(role)) {
+  if (role === 'ADMIN') {
     return next();
   }
 
@@ -94,21 +93,18 @@ const requireVerified = (req, res, next) => {
    * Do not silently bypass this in development. A development
    * environment should not change authorization behavior.
    */
-  if (
-    ['NGO', 'DRIVER'].includes(role) &&
-    req.user.isVerified !== true
-  ) {
+  if (['DONOR', 'NGO', 'DRIVER'].includes(role) && req.user.isVerified !== true) {
     return res.status(403).json({
       success: false,
       message:
-        'Account pending admin verification. You cannot claim or accept food yet.',
+        'Account pending admin verification. You cannot use this feature yet.',
     });
   }
 
   /*
    * Unknown/unsupported roles should not automatically pass.
    */
-  if (!['NGO', 'DRIVER'].includes(role)) {
+  if (!['DONOR', 'NGO', 'DRIVER'].includes(role)) {
     return res.status(403).json({
       success: false,
       message:

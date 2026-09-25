@@ -21,6 +21,8 @@ const AdminUsers = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [error, setError] = useState('');
+  const [proofPreview, setProofPreview] = useState(null);
+  const [viewedProofIds, setViewedProofIds] = useState(() => new Set());
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -49,15 +51,13 @@ const AdminUsers = () => {
     fetchUsers();
   };
 
-  const handleToggleVerification = async (userId, currentStatus) => {
+  const handleRevokeDecision = async (userId) => {
     setActionLoading(userId);
     try {
-      const res = await api.patch(`/admin/users/${userId}/verify`, {
-        isVerified: !currentStatus,
-      });
+      const res = await api.patch(`/admin/users/${userId}/verify`, { decision: 'REVOKE' });
       if (res.data.success) {
         setUsers((prev) =>
-          prev.map((u) => (u._id === userId ? { ...u, isVerified: !currentStatus } : u))
+          prev.map((u) => (u._id === userId ? { ...u, isVerified: false, verificationStatus: 'PENDING' } : u))
         );
       }
     } catch (err) {
@@ -65,6 +65,64 @@ const AdminUsers = () => {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const handleApproveUser = async (userId) => {
+    setActionLoading(userId);
+    try {
+      const res = await api.patch(`/admin/users/${userId}/verify`, { decision: 'APPROVE' });
+      if (res.data.success) {
+        setUsers((previous) => previous.map((user) => user._id === userId
+          ? { ...user, isVerified: true, verificationStatus: 'APPROVED' }
+          : user));
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to approve account');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRejectUser = async (userId) => {
+    setActionLoading(userId);
+    try {
+      const res = await api.patch(`/admin/users/${userId}/verify`, { decision: 'REJECT' });
+      if (res.data.success) {
+        setUsers((previous) => previous.map((user) => user._id === userId
+          ? { ...user, isVerified: false, verificationStatus: 'REJECTED' }
+          : user));
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to reject account');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleViewDocument = async (userId) => {
+    try {
+      const res = await api.get(`/admin/users/${userId}/verification-document`);
+      if (res.data.url) {
+        const user = users.find((item) => item._id === userId);
+        const name = user?.verificationDocument?.originalName || 'Verification proof';
+        const isPdf = name.toLowerCase().endsWith('.pdf') || res.data.url.startsWith('data:application/pdf');
+        const previewUrl = res.data.url.startsWith('data:')
+          ? URL.createObjectURL(await (await fetch(res.data.url)).blob())
+          : res.data.url;
+        setProofPreview({ url: previewUrl, name, isPdf, userId });
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not open verification document');
+    }
+  };
+
+  const closeProofPreview = () => {
+    if (proofPreview?.url.startsWith('blob:')) URL.revokeObjectURL(proofPreview.url);
+    setProofPreview(null);
+  };
+
+  const markProofViewed = (userId) => {
+    setViewedProofIds((previous) => new Set(previous).add(userId));
   };
 
   // Warm Impact Role Badges
@@ -85,6 +143,23 @@ const AdminUsers = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-100 text-stone-800 font-sans py-8 px-4 sm:px-6 lg:px-8">
+      {proofPreview && (
+        <div className="fixed inset-0 z-50 bg-black/70 p-4 flex items-center justify-center" onClick={closeProofPreview}>
+          <section className="w-full max-w-5xl h-[90vh] bg-white rounded-2xl overflow-hidden flex flex-col" onClick={(event) => event.stopPropagation()}>
+            <header className="flex items-center justify-between gap-4 px-5 py-3 border-b">
+              <h2 className="font-bold truncate">{proofPreview.name}</h2>
+              <button type="button" onClick={closeProofPreview} className="px-3 py-1 rounded-lg bg-stone-100 hover:bg-stone-200">Close</button>
+            </header>
+            <div className="flex-1 min-h-0 bg-stone-100 flex items-center justify-center p-3">
+              {proofPreview.isPdf ? (
+                <iframe title={proofPreview.name} src={proofPreview.url} onLoad={() => markProofViewed(proofPreview.userId)} className="w-full h-full bg-white" />
+              ) : (
+                <img src={proofPreview.url} alt={proofPreview.name} onLoad={() => markProofViewed(proofPreview.userId)} className="max-w-full max-h-full object-contain" />
+              )}
+            </div>
+          </section>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Navigation & Header with FR Monogram Branding */}
@@ -246,6 +321,10 @@ const AdminUsers = () => {
                             <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
                             <span>Verified</span>
                           </span>
+                        ) : u.verificationStatus === 'REJECTED' ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-300/80">
+                            <XCircle className="w-3.5 h-3.5" /><span>Rejected</span>
+                          </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300/80 shadow-sm">
                             <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
@@ -261,21 +340,40 @@ const AdminUsers = () => {
 
                       {/* Action CTA Pill Button */}
                       <td className="py-4 px-6 text-right">
-                        <button
-                          onClick={() => handleToggleVerification(u._id, u.isVerified)}
-                          disabled={actionLoading === u._id}
-                          className={`text-xs font-black px-4 py-2 rounded-full transition-all border shadow-sm active:scale-95 ${
-                            u.isVerified
-                              ? 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-600 hover:text-white hover:border-rose-600'
-                              : 'bg-red-600 text-white border-red-600 hover:bg-red-700 shadow-red-600/20'
-                          }`}
-                        >
-                          {actionLoading === u._id
-                            ? 'Updating...'
-                            : u.isVerified
-                            ? 'Reject / Revoke'
-                            : 'Verify Account'}
-                        </button>
+                        {u.verificationDocument?.originalName ? (
+                          <button
+                            onClick={() => handleViewDocument(u._id)}
+                            className="mr-2 text-xs font-bold text-blue-700 underline"
+                          >View proof</button>
+                        ) : <span className="mr-2 text-xs text-stone-400">No proof</span>}
+                        {(u.isVerified || ['APPROVED', 'REJECTED'].includes(u.verificationStatus)) ? (
+                          <button
+                            onClick={() => handleRevokeDecision(u._id)}
+                            disabled={actionLoading === u._id}
+                            className="text-xs font-black px-4 py-2 rounded-full border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white disabled:opacity-40"
+                          >
+                            {actionLoading === u._id ? 'Updating...' : 'Revoke'}
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleApproveUser(u._id)}
+                              disabled={actionLoading === u._id || !viewedProofIds.has(u._id)}
+                              title={!viewedProofIds.has(u._id) ? 'View proof before approving this account' : undefined}
+                              className="text-xs font-black px-4 py-2 rounded-full border border-emerald-300 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {actionLoading === u._id ? 'Updating...' : 'Approve'}
+                            </button>
+                            <button
+                              onClick={() => handleRejectUser(u._id)}
+                              disabled={actionLoading === u._id || !viewedProofIds.has(u._id)}
+                              title={!viewedProofIds.has(u._id) ? 'View proof before rejecting this account' : undefined}
+                              className="ml-2 text-xs font-black px-4 py-2 rounded-full border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {actionLoading === u._id ? 'Updating...' : 'Reject'}
+                            </button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))

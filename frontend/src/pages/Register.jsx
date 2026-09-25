@@ -19,6 +19,7 @@ const Register = () => {
   const [capacityDailyMeals, setCapacityDailyMeals] = useState(120);
   const [hasRefrigeration, setHasRefrigeration] = useState(true);
   const [vehicleType, setVehicleType] = useState('CAR');
+  const [verificationDocument, setVerificationDocument] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,6 +52,7 @@ const Register = () => {
         email,
         password,
         role,
+        verificationDocument,
         phone,
         address,
         coordinates: [77.209 + (Math.random() - 0.5) * 0.05, 28.6139 + (Math.random() - 0.5) * 0.05],
@@ -200,6 +202,20 @@ const Register = () => {
                 onChange={(e) => setAddress(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E8C98F] text-[#431407] text-sm placeholder:text-[#B98B62] outline-none transition-all focus:border-[#E53935] focus:ring-4 focus:ring-red-100"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#7C2D12] mb-1.5">
+                Government recognized proof
+              </label>
+              <input
+                type="file"
+                required
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                onChange={(e) => setVerificationDocument(e.target.files?.[0] || null)}
+                className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E8C98F] text-[#431407] text-sm"
+              />
+              <p className="mt-1 text-xs text-[#7C2D12]">Upload a clear JPG, PNG, WebP, or PDF (up to 10 MB). Admin approval is required before account actions are enabled.</p>
             </div>
 
             {/* Dynamic Role Profile Options */}

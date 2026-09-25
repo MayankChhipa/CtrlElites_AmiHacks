@@ -90,13 +90,26 @@ const UserSchema = new mongoose.Schema(
     },
 
     /*
-     * Donors are normally verified during registration.
-     * NGOs and drivers require administrative verification.
+     * Donors, NGOs, and drivers require administrative verification.
      */
     isVerified: {
       type: Boolean,
       default: false,
       index: true,
+    },
+    verificationStatus: {
+      type: String,
+      enum: ['PENDING', 'APPROVED', 'REJECTED', 'REVOKED'],
+      default: 'PENDING',
+      index: true,
+    },
+
+    verificationDocument: {
+      url: { type: String, trim: true },
+      originalName: { type: String, trim: true, maxlength: 255 },
+      uploadedAt: { type: Date },
+      reviewedAt: { type: Date },
+      reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     },
 
     /*

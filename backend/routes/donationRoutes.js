@@ -15,6 +15,7 @@ const {
 
 const {
   authorize,
+  requireVerified,
 } = require('../middlewares/roleMiddleware');
 
 /*
@@ -27,6 +28,7 @@ router.post(
   '/',
   protect,
   authorize('DONOR', 'ADMIN'),
+  requireVerified,
   createDonation
 );
 

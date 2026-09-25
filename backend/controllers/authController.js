@@ -1,10 +1,15 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const { signToken } = require('../config/jwt');
+const { uploadVerificationDocument } = require('../config/cloudinary');
 
 const ALLOWED_ROLES = ['DONOR', 'NGO', 'DRIVER'];
 
 const normalizeEmail = (email) => email.trim().toLowerCase();
+const parseJsonField = (value) => {
+  if (typeof value !== 'string') return value;
+  try { return JSON.parse(value); } catch { return null; }
+};
 
 const isValidCoordinates = (coordinates) => {
   if (!Array.isArray(coordinates) || coordinates.length !== 2) {
@@ -47,9 +52,11 @@ const register = async (req, res) => {
       role,
       phone,
       address,
-      coordinates,
-      roleDetails,
+      coordinates: coordinateInput,
+      roleDetails: roleDetailsInput,
     } = req.body;
+    const coordinates = parseJsonField(coordinateInput);
+    const roleDetails = parseJsonField(roleDetailsInput);
 
     if (!name || !email || !password || !role || !phone) {
       return res.status(400).json({
@@ -66,6 +73,10 @@ const register = async (req, res) => {
         success: false,
         message: 'Invalid registration role.',
       });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'A government-recognized verification document is required.' });
     }
 
     if (typeof password !== 'string' || password.length < 8) {
@@ -111,9 +122,12 @@ const register = async (req, res) => {
       role: normalizedRole,
       phone: String(phone).trim(),
 
-      // NGO/DRIVER verification is handled by the admin flow.
-      // Donors can be immediately active.
-      isVerified: normalizedRole === 'DONOR',
+      isVerified: false,
+      verificationDocument: {
+        ...(await uploadVerificationDocument(req.file.buffer, req.file.mimetype)),
+        originalName: req.file.originalname,
+        uploadedAt: new Date(),
+      },
     };
 
     if (isValidCoordinates(coordinates)) {
