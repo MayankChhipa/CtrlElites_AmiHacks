@@ -83,7 +83,7 @@ const Navbar = () => {
           {/* Brand Logo & Role Badge */}
           <div className="flex items-center gap-4">
             <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-red-600 to-orange-500 flex items-center justify-center shadow-md shadow-red-600/20 group-hover:scale-105 transition-transform">
+              <div className="w-11 h-11 rounded-2xl bg-linear-to-tr from-red-600 to-orange-500 flex items-center justify-center shadow-md shadow-red-600/20 group-hover:scale-105 transition-transform">
                 <HeartHandshake className="w-6 h-6 text-white stroke-[2.5]" />
               </div>
               <div className="flex flex-col">
@@ -123,7 +123,7 @@ const Navbar = () => {
                         : 'text-stone-600 hover:text-red-950 hover:bg-orange-50'
                     }`}
                   >
-                    <Icon className="w-4 h-4 stroke-[2]" />
+                    <Icon className="w-4 h-4 stroke-2" />
                     <span>{link.name}</span>
                   </Link>
                 );
@@ -147,7 +147,7 @@ const Navbar = () => {
                   className="p-2.5 text-stone-500 hover:text-rose-700 rounded-xl hover:bg-rose-100 transition-colors"
                   title="Log out"
                 >
-                  <LogOut className="w-5 h-5 stroke-[2]" />
+                  <LogOut className="w-5 h-5 stroke-2" />
                 </button>
               </>
             ) : (
@@ -173,7 +173,7 @@ const Navbar = () => {
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="md:hidden p-2.5 rounded-xl text-stone-600 hover:text-red-950 hover:bg-orange-100"
               >
-                {mobileMenuOpen ? <X className="w-6 h-6 stroke-[2]" /> : <Menu className="w-6 h-6 stroke-[2]" />}
+                {mobileMenuOpen ? <X className="w-6 h-6 stroke-2" /> : <Menu className="w-6 h-6 stroke-2" />}
               </button>
             )}
           </div>

@@ -217,7 +217,7 @@ const DeliveryDetail = () => {
   // =========================
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-amber-100 via-orange-50 to-yellow-100 flex items-center justify-center p-4">
         <div className="bg-[#FFFDF6] p-8 rounded-3xl shadow-xl shadow-orange-900/5 border border-orange-100 text-center space-y-3">
           <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
 
@@ -234,7 +234,7 @@ const DeliveryDetail = () => {
   // =========================
   if (error && !delivery) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-amber-100 via-orange-50 to-yellow-100 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-[#FFFDF6] p-8 rounded-3xl shadow-xl shadow-orange-900/5 border border-orange-100 text-center space-y-4">
           <AlertCircle className="w-12 h-12 text-red-600 mx-auto" />
 
@@ -261,7 +261,7 @@ const DeliveryDetail = () => {
   const status = delivery.status;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-100 text-stone-800 font-sans py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-linear-to-br from-amber-100 via-orange-50 to-yellow-100 text-stone-800 font-sans py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto space-y-6">
 
         {/* Navigation */}
@@ -270,7 +270,7 @@ const DeliveryDetail = () => {
             to="/driver"
             className="inline-flex items-center gap-2 text-xs font-bold text-red-700 hover:text-red-900 transition-all hover:-translate-x-1"
           >
-            <ArrowLeft className="w-4 h-4 stroke-[3]" />
+            <ArrowLeft className="w-4 h-4 stroke-3" />
             <span>Back to Fleet Dispatch</span>
           </Link>
 
@@ -564,7 +564,7 @@ const DeliveryDetail = () => {
                     }
                     className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-full shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
                   >
-                    <Check className="w-4 h-4 stroke-[3]" />
+                    <Check className="w-4 h-4 stroke-3" />
                     <span>
                       Verify OTP & Confirm Pickup
                     </span>
@@ -688,7 +688,7 @@ const DeliveryDetail = () => {
                     }
                     className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-full shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
                   >
-                    <Check className="w-4 h-4 stroke-[3]" />
+                    <Check className="w-4 h-4 stroke-3" />
                     <span>
                       Verify OTP & Complete Delivery
                     </span>

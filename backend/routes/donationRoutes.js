@@ -10,10 +10,6 @@ const {
   getNearbyDonations,
 } = require('../controllers/donationController');
 
-<<<<<<< HEAD
-const { protect } = require('../middlewares/authMiddleware');
-const { authorize } = require('../middlewares/roleMiddleware');
-=======
 const {
   protect,
 } = require('../middlewares/authMiddleware');
@@ -36,7 +32,6 @@ router.post(
   requireVerified,
   createDonation
 );
->>>>>>> 426e454d6872deeff76f5ef1d8759398ed1cb131
 
 /*
  * Get the authenticated donor's own donations.
