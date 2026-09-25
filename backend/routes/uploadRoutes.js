@@ -2,7 +2,7 @@ const express = require('express');
 
 const router = express.Router();
 
-const upload = require('../middlewares/uploadMiddleWare.js');
+const upload = require('../middlewares/uploadMiddleware.js');
 const { uploadImageBuffer } = require('../config/cloudinary');
 
 const {

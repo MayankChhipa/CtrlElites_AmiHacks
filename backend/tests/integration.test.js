@@ -2,8 +2,11 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('http');
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const express = require('express');
+const User = require('../models/User');
+const { signToken } = require('../config/jwt');
 
 // Import routes & config
 const { initSocket } = require('../config/socket');
@@ -14,6 +17,8 @@ const deliveryRoutes = require('../routes/deliveryRoutes');
 const analyticsRoutes = require('../routes/analyticsRoutes');
 const notificationRoutes = require('../routes/notificationRoutes');
 const adminRoutes = require('../routes/adminRoutes');
+const uploadRoutes = require('../routes/uploadRoutes');
+const { isConfigured: cloudinaryIsConfigured } = require('../config/cloudinary');
 
 let mongod;
 let server;
@@ -36,6 +41,7 @@ test.before(async () => {
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/upload', uploadRoutes);
 
   await new Promise((resolve) => {
     server.listen(0, () => {
@@ -59,6 +65,7 @@ test.after(async () => {
 let donorToken, ngoToken, ngo2Token, driverToken, driver2Token, adminToken;
 let donorUser, ngoUser, ngo2User, driverUser, driver2User, adminUser;
 let createdDonationId, proposalMatchId, createdDeliveryId;
+let rematchDonationId, rematchMatchId, assignedDriverToken;
 let pickupOtp, deliveryOtp;
 
 test('Auth: Register and Login users with roles', async () => {
@@ -171,7 +178,45 @@ test('Auth: Register and Login users with roles', async () => {
   driver2Token = dataDriver2.token;
   driver2User = dataDriver2.user;
 
-  // 6. Register Admin
+  // 6. Provision Admin directly, as public admin registration is disabled.
+  const adminPasswordHash = await bcrypt.hash('password123', 12);
+  const adminDocument = await User.create({
+    name: 'Platform Admin',
+    email: 'admin_test@example.com',
+    passwordHash: adminPasswordHash,
+    role: 'ADMIN',
+    phone: '+1 555-9999',
+    isVerified: true,
+    location: {
+      type: 'Point',
+      coordinates: [77.209, 28.6139],
+    },
+  });
+
+  adminUser = {
+    _id: adminDocument._id.toString(),
+    role: adminDocument.role,
+  };
+  adminToken = signToken(adminDocument);
+
+  // Verify partner accounts through the same admin workflow used by the app.
+  for (const user of [ngoUser, ngo2User, driverUser, driver2User]) {
+    const response = await fetch(
+      `${baseUrl}/api/admin/users/${user._id}/verify`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ isVerified: true }),
+      }
+    );
+
+    assert.equal(response.status, 200);
+  }
+
+  // Public registration must not allow privilege escalation to ADMIN.
   const resAdmin = await fetch(`${baseUrl}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -183,10 +228,7 @@ test('Auth: Register and Login users with roles', async () => {
       phone: '+1 555-9999',
     }),
   });
-  const dataAdmin = await resAdmin.json();
-  assert.equal(resAdmin.status, 201);
-  adminToken = dataAdmin.token;
-  adminUser = dataAdmin.user;
+  assert.equal(resAdmin.status, 400);
 
   // Test Login
   const resLogin = await fetch(`${baseUrl}/api/auth/login`, {
@@ -232,6 +274,32 @@ test('Auth: Protected routes and Role Authorization enforcement', async () => {
 });
 
 test('Donation: Creation, Urgency Calculation, and Matching', async () => {
+  let images = [];
+
+  // Avoid external Cloudinary calls in automated tests; exercise the local fallback.
+  if (!cloudinaryIsConfigured) {
+    const formData = new FormData();
+    const onePixelPng = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lXcAAAAASUVORK5CYII=',
+      'base64'
+    );
+    formData.append(
+      'image',
+      new Blob([onePixelPng], { type: 'image/png' }),
+      'donation.png'
+    );
+
+    const resUpload = await fetch(`${baseUrl}/api/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${donorToken}` },
+      body: formData,
+    });
+    const uploadData = await resUpload.json();
+    assert.equal(resUpload.status, 200);
+    assert.match(uploadData.url, /^data:image\/png;base64,/);
+    images = [uploadData.url];
+  }
+
   // Donor creates a donation with 3 hours expiry (MEDIUM urgency)
   const resDonation = await fetch(`${baseUrl}/api/donations`, {
     method: 'POST',
@@ -257,6 +325,7 @@ test('Donation: Creation, Urgency Calculation, and Matching', async () => {
         address: 'Downtown Kitchen',
         coordinates: [77.209, 28.6139],
       },
+      images,
     }),
   });
 
@@ -273,6 +342,31 @@ test('Donation: Creation, Urgency Calculation, and Matching', async () => {
 
   createdDonationId = data.donation._id;
   pickupOtp = data.donation.pickupOtp;
+
+  // Donor dashboard list and tracking detail must return saved map/image data.
+  const resMyDonations = await fetch(`${baseUrl}/api/donations/my`, {
+    headers: { Authorization: `Bearer ${donorToken}` },
+  });
+  const myDonationsData = await resMyDonations.json();
+  assert.equal(resMyDonations.status, 200);
+  const listedDonation = myDonationsData.donations.find(
+    (item) => item._id.toString() === createdDonationId.toString()
+  );
+  assert.ok(listedDonation);
+  assert.deepEqual(
+    listedDonation.pickupLocation.location.coordinates,
+    [77.209, 28.6139]
+  );
+  assert.deepEqual(listedDonation.images, images);
+
+  const resDonationDetail = await fetch(
+    `${baseUrl}/api/donations/${createdDonationId}`,
+    { headers: { Authorization: `Bearer ${donorToken}` } }
+  );
+  const detailData = await resDonationDetail.json();
+  assert.equal(resDonationDetail.status, 200);
+  assert.equal(detailData.donation._id.toString(), createdDonationId.toString());
+  assert.equal(detailData.donation.urgencyLevel, 'MEDIUM');
 });
 
 test('Matching: NGO Proposals, Breakdown, and Capacity', async () => {
@@ -321,6 +415,11 @@ test('Matching: NGO Rejection and Re-matching to secondary NGO', async () => {
       foodType: 'COOKED_MEALS',
       quantity: { amount: 20, unit: 'SERVINGS', estimatedServings: 20, estimatedWeightKg: 8 },
       perishability: { expiryHours: 2 },
+      pickupLocation: {
+        address: '10 Test Kitchen Road',
+        contactPhone: '+1 555-1111',
+        coordinates: [77.209, 28.6139],
+      },
     }),
   });
   const donData = await resDon.json();
@@ -347,6 +446,8 @@ test('Matching: NGO Rejection and Re-matching to secondary NGO', async () => {
     const pData2 = await resProp2.json();
     const rematched = pData2.proposals.find((p) => p.donationId._id === donData.donation._id);
     assert.ok(rematched, 'Secondary NGO should receive re-matched proposal');
+    rematchDonationId = donData.donation._id;
+    rematchMatchId = rematched._id;
   }
 });
 
@@ -375,6 +476,18 @@ test('Matching: NGO Acceptance reserves capacity', async () => {
 });
 
 test('Delivery: Driver claim race condition protection', async () => {
+  const resAvailable = await fetch(`${baseUrl}/api/deliveries/available`, {
+    headers: { Authorization: `Bearer ${driverToken}` },
+  });
+  const availableData = await resAvailable.json();
+  assert.equal(resAvailable.status, 200);
+  assert.ok(
+    availableData.available.some(
+      (donation) => donation._id.toString() === createdDonationId.toString()
+    ),
+    'Accepted donations should appear in the driver dashboard'
+  );
+
   // Driver 1 and Driver 2 attempt to claim the same donation concurrently
   const [claim1, claim2] = await Promise.all([
     fetch(`${baseUrl}/api/deliveries/${createdDonationId}/claim`, {
@@ -393,7 +506,26 @@ test('Delivery: Driver claim race condition protection', async () => {
 
   const successClaim = claim1.status === 201 ? await claim1.json() : await claim2.json();
   createdDeliveryId = successClaim.delivery._id;
+  assignedDriverToken = claim1.status === 201 ? driverToken : driver2Token;
   assert.equal(successClaim.delivery.status, 'ASSIGNED');
+  assert.deepEqual(successClaim.delivery.pickupCoords, [77.209, 28.6139]);
+  assert.ok(Array.isArray(successClaim.delivery.dropoffCoords));
+  assert.ok(successClaim.delivery.routeSummary?.geojson?.coordinates?.length >= 2);
+
+  const resActive = await fetch(`${baseUrl}/api/deliveries/my-active`, {
+    headers: { Authorization: `Bearer ${assignedDriverToken}` },
+  });
+  const activeData = await resActive.json();
+  assert.equal(resActive.status, 200);
+  assert.ok(activeData.deliveries.some((delivery) => delivery._id === createdDeliveryId));
+
+  const resDeliveryDetail = await fetch(
+    `${baseUrl}/api/deliveries/${createdDeliveryId}`,
+    { headers: { Authorization: `Bearer ${assignedDriverToken}` } }
+  );
+  const detailData = await resDeliveryDetail.json();
+  assert.equal(resDeliveryDetail.status, 200);
+  assert.ok(detailData.delivery.routeSummary?.geojson?.coordinates?.length >= 2);
 });
 
 test('Delivery: Lifecycle state transitions and OTP verification', async () => {
@@ -497,9 +629,71 @@ test('Delivery: Lifecycle state transitions and OTP verification', async () => {
   assert.equal(dataCapAfter.availableCapacity, 100);
 });
 
+test('Delivery: Cancellation releases the driver and reopens the donation', async () => {
+  assert.ok(rematchMatchId && rematchDonationId);
+
+  const resAccept = await fetch(
+    `${baseUrl}/api/matches/${rematchMatchId}/accept`,
+    {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${ngo2Token}` },
+    }
+  );
+  assert.equal(resAccept.status, 200);
+
+  const resClaim = await fetch(
+    `${baseUrl}/api/deliveries/${rematchDonationId}/claim`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${driverToken}` },
+    }
+  );
+  const claimData = await resClaim.json();
+  assert.equal(resClaim.status, 201);
+
+  const resCancel = await fetch(
+    `${baseUrl}/api/deliveries/${claimData.delivery._id}/cancel`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${driverToken}`,
+      },
+      body: JSON.stringify({ reason: 'Vehicle issue' }),
+    }
+  );
+  const cancelData = await resCancel.json();
+  assert.equal(resCancel.status, 200);
+  assert.equal(cancelData.delivery.status, 'CANCELLED');
+
+  const resAvailable = await fetch(`${baseUrl}/api/deliveries/available`, {
+    headers: { Authorization: `Bearer ${driverToken}` },
+  });
+  const availableData = await resAvailable.json();
+  assert.ok(
+    availableData.available.some(
+      (donation) => donation._id.toString() === rematchDonationId.toString()
+    ),
+    'Cancelled donations should return to the available delivery queue'
+  );
+
+  const resActive = await fetch(`${baseUrl}/api/deliveries/my-active`, {
+    headers: { Authorization: `Bearer ${driverToken}` },
+  });
+  const activeData = await resActive.json();
+  assert.equal(resActive.status, 200);
+  assert.ok(
+    activeData.deliveries.every(
+      (delivery) => delivery._id !== claimData.delivery._id
+    )
+  );
+});
+
 test('Analytics & Admin: Verify impact telemetry and statistics', async () => {
-  // Check analytics
-  const resAnalytics = await fetch(`${baseUrl}/api/analytics/impact`);
+  // Analytics is an authenticated endpoint in the app.
+  const resAnalytics = await fetch(`${baseUrl}/api/analytics/impact`, {
+    headers: { Authorization: `Bearer ${adminToken}` },
+  });
   const dataAnalytics = await resAnalytics.json();
   assert.equal(resAnalytics.status, 200);
   assert.ok(dataAnalytics.impact.totalMealsRescued >= 25);

@@ -24,6 +24,22 @@ const coordinatesValidator = {
     'Coordinates must be [longitude, latitude] with valid geographic values.',
 };
 
+const GeoPointSchema = new mongoose.Schema(
+  {
+    type: {
+      type: String,
+      enum: ['Point'],
+      required: true,
+    },
+    coordinates: {
+      type: [Number],
+      required: true,
+      validate: coordinatesValidator,
+    },
+  },
+  { _id: false }
+);
+
 const UserSchema = new mongoose.Schema(
   {
     name: {
@@ -262,16 +278,8 @@ const UserSchema = new mongoose.Schema(
        * Do NOT default this to [0, 0].
        */
       currentLocation: {
-        type: {
-          type: String,
-          enum: ['Point'],
-          default: 'Point',
-        },
-
-        coordinates: {
-          type: [Number],
-          validate: coordinatesValidator,
-        },
+        type: GeoPointSchema,
+        default: undefined,
       },
     },
   },

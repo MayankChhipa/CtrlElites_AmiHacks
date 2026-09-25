@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Truck,
@@ -34,7 +34,7 @@ const DeliveryDetail = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
-  const fetchDelivery = async () => {
+  const fetchDelivery = useCallback(async () => {
     try {
       const res = await api.get(`/deliveries/${id}`);
       if (res.data.success) {
@@ -45,36 +45,40 @@ const DeliveryDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  const donationId =
+    delivery?.donationId?._id ||
+    delivery?.donationId ||
+    null;
 
   useEffect(() => {
     fetchDelivery();
+  }, [fetchDelivery]);
 
+  useEffect(() => {
     const socket = getSocket();
-    if (socket) {
-      const donationId = delivery?.donationId?._id || delivery?.donationId;
-      if (donationId) {
-        socket.emit('join_donation', donationId);
-      }
-
-      const handleUpdate = () => {
-        fetchDelivery();
-      };
-
-      socket.on('pickup_confirmed', handleUpdate);
-      socket.on('delivery_completed', handleUpdate);
-      socket.on('delivery_verified', handleUpdate);
-
-      return () => {
-        if (donationId) {
-          socket.emit('leave_donation', donationId);
-        }
-        socket.off('pickup_confirmed', handleUpdate);
-        socket.off('delivery_completed', handleUpdate);
-        socket.off('delivery_verified', handleUpdate);
-      };
+    if (!socket || !donationId) {
+      return undefined;
     }
-  }, [id, delivery?.donationId]);
+
+    socket.emit('join_donation', donationId);
+
+    const handleUpdate = () => {
+      fetchDelivery();
+    };
+
+    socket.on('pickup_confirmed', handleUpdate);
+    socket.on('delivery_completed', handleUpdate);
+    socket.on('delivery_verified', handleUpdate);
+
+    return () => {
+      socket.emit('leave_donation', donationId);
+      socket.off('pickup_confirmed', handleUpdate);
+      socket.off('delivery_completed', handleUpdate);
+      socket.off('delivery_verified', handleUpdate);
+    };
+  }, [donationId, fetchDelivery]);
 
   const handleAction = async (endpoint, payload = {}) => {
     setActionLoading(true);
