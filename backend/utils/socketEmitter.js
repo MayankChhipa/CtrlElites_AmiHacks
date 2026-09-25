@@ -21,10 +21,7 @@ const normalizeId = (value) => {
     return '';
   }
 
-  if (
-    typeof value === 'object' &&
-    value._id
-  ) {
+  if (typeof value === 'object' && value._id) {
     return value._id.toString();
   }
 
@@ -46,71 +43,41 @@ const createAndSendNotification = async ({
   data = {},
 }) => {
   try {
-    const normalizedRecipientId =
-      normalizeId(recipientId);
+    const normalizedRecipientId = normalizeId(recipientId);
 
     if (!normalizedRecipientId) {
-      console.warn(
-        '[Notification] Missing recipientId.'
-      );
+      console.warn('[Notification] Missing recipientId.');
       return null;
     }
 
-    if (
-      typeof title !== 'string' ||
-      !title.trim()
-    ) {
-      console.warn(
-        '[Notification] Missing notification title.'
-      );
+    if (typeof title !== 'string' || !title.trim()) {
+      console.warn('[Notification] Missing notification title.');
       return null;
     }
 
-    if (
-      typeof message !== 'string' ||
-      !message.trim()
-    ) {
-      console.warn(
-        '[Notification] Missing notification message.'
-      );
+    if (typeof message !== 'string' || !message.trim()) {
+      console.warn('[Notification] Missing notification message.');
       return null;
     }
 
-    const notification =
-      await Notification.create({
-        recipientId:
-          normalizedRecipientId,
-        senderId:
-          senderId
-            ? normalizeId(senderId)
-            : undefined,
-        title: title.trim(),
-        message: message.trim(),
-        type,
-        data:
-          data &&
-          typeof data === 'object'
-            ? data
-            : {},
-      });
+    const notification = await Notification.create({
+      recipientId: normalizedRecipientId,
+      senderId: senderId ? normalizeId(senderId) : undefined,
+      title: title.trim(),
+      message: message.trim(),
+      type,
+      data: data && typeof data === 'object' ? data : {},
+    });
 
     const io = safeGetIO();
 
     if (io) {
-      io.to(
-        `user:${normalizedRecipientId}`
-      ).emit(
-        'notification',
-        notification
-      );
+      io.to(`user:${normalizedRecipientId}`).emit('notification', notification);
     }
 
     return notification;
   } catch (error) {
-    console.error(
-      '[Notification] Error creating notification:',
-      error.message
-    );
+    console.error('[Notification] Error creating notification:', error.message);
 
     return null;
   }
@@ -119,9 +86,7 @@ const createAndSendNotification = async ({
 /**
  * Donation lifecycle events
  */
-const emitDonationCreated = (
-  donation
-) => {
+const emitDonationCreated = (donation) => {
   if (!donation?._id) {
     return;
   }
@@ -132,82 +97,51 @@ const emitDonationCreated = (
     return;
   }
 
-  const donationId =
-    normalizeId(donation._id);
+  const donationId = normalizeId(donation._id);
 
-  io.emit(
-    'donation_created',
-    {
-      donationId,
-      title: donation.title,
-    }
-  );
+  io.emit('donation_created', {
+    donationId,
+    title: donation.title,
+  });
 
-  io.to('role:ADMIN').emit(
-    'admin_feed',
-    {
-      type: 'DONATION_CREATED',
-      donation,
-    }
-  );
+  io.to('role:ADMIN').emit('admin_feed', {
+    type: 'DONATION_CREATED',
+    donation,
+  });
 };
 
 /**
  * Match proposed to NGO
  */
-const emitMatchProposed = async (
-  match,
-  donation,
-  ngoId
-) => {
-  if (
-    !match?._id ||
-    !donation?._id ||
-    !ngoId
-  ) {
+const emitMatchProposed = async (match, donation, ngoId) => {
+  if (!match?._id || !donation?._id || !ngoId) {
     return;
   }
 
-  const matchId =
-    normalizeId(match._id);
+  const matchId = normalizeId(match._id);
 
-  const donationId =
-    normalizeId(donation._id);
+  const donationId = normalizeId(donation._id);
 
-  const normalizedNgoId =
-    normalizeId(ngoId);
+  const normalizedNgoId = normalizeId(ngoId);
 
   const io = safeGetIO();
 
   if (io) {
-    io.to(
-      `user:${normalizedNgoId}`
-    ).emit(
-      'match_proposed',
-      {
-        matchId,
-        donationId,
-        matchScore:
-          match.matchScore,
-      }
-    );
+    io.to(`user:${normalizedNgoId}`).emit('match_proposed', {
+      matchId,
+      donationId,
+      matchScore: match.matchScore,
+    });
 
-    io.to(
-      `donation:${donationId}`
-    ).emit(
-      'match_proposed',
-      {
-        matchId,
-      }
-    );
+    io.to(`donation:${donationId}`).emit('match_proposed', {
+      matchId,
+    });
   }
 
   await createAndSendNotification({
     recipientId: normalizedNgoId,
-    title:
-      'New Food Donation Proposed! 🍲',
-    message:
-      `A new surplus donation "${donation.title}" is waiting for your acceptance.`,
+    title: 'New Food Donation Proposed! 🍲',
+    message: `A new surplus donation "${donation.title}" is waiting for your acceptance.`,
     type: 'MATCH',
     data: {
       donationId,
@@ -219,73 +153,46 @@ const emitMatchProposed = async (
 /**
  * Match accepted
  */
-const emitMatchAccepted = async (
-  match,
-  donation
-) => {
-  if (
-    !match?._id ||
-    !match?.ngoId ||
-    !donation?._id ||
-    !donation?.donorId
-  ) {
+const emitMatchAccepted = async (match, donation) => {
+  if (!match?._id || !match?.ngoId || !donation?._id || !donation?.donorId) {
     return;
   }
 
-  const matchId =
-    normalizeId(match._id);
+  const matchId = normalizeId(match._id);
 
-  const ngoId =
-    normalizeId(match.ngoId);
+  const ngoId = normalizeId(match.ngoId);
 
-  const donationId =
-    normalizeId(donation._id);
+  const donationId = normalizeId(donation._id);
 
-  const donorId =
-    normalizeId(donation.donorId);
+  const donorId = normalizeId(donation.donorId);
 
   const io = safeGetIO();
 
   if (io) {
-    io.to(
-      `donation:${donationId}`
-    ).emit(
-      'match_accepted',
-      {
-        donationId,
-        ngoId,
-      }
-    );
+    io.to(`donation:${donationId}`).emit('match_accepted', {
+      donationId,
+      ngoId,
+    });
 
-    io.to(
-      `user:${donorId}`
-    ).emit(
-      'match_accepted',
-      {
-        donationId,
-        ngoId,
-      }
-    );
+    io.to(`user:${donorId}`).emit('match_accepted', {
+      donationId,
+      ngoId,
+    });
 
     /*
      * Drivers receive availability updates.
      * The actual claim endpoint must still perform
      * atomic authorization/availability checks.
      */
-    io.to('role:DRIVER').emit(
-      'delivery_available',
-      {
-        donationId,
-        pickupLocation:
-          donation.pickupLocation,
-      }
-    );
+    io.to('role:DRIVER').emit('delivery_available', {
+      donationId,
+      pickupLocation: donation.pickupLocation,
+    });
   }
 
   await createAndSendNotification({
     recipientId: donorId,
-    title:
-      'Match Accepted! 🎉',
+    title: 'Match Accepted! 🎉',
     message:
       'A shelter has accepted your surplus donation. A driver will be assigned shortly.',
     type: 'MATCH',
@@ -299,15 +206,8 @@ const emitMatchAccepted = async (
 /**
  * Match declined
  */
-const emitMatchDeclined = (
-  match,
-  donation
-) => {
-  if (
-    !match?._id ||
-    !match?.ngoId ||
-    !donation?._id
-  ) {
+const emitMatchDeclined = (match, donation) => {
+  if (!match?._id || !match?.ngoId || !donation?._id) {
     return;
   }
 
@@ -317,32 +217,16 @@ const emitMatchDeclined = (
     return;
   }
 
-  io.to(
-    `donation:${normalizeId(
-      donation._id
-    )}`
-  ).emit(
-    'match_declined',
-    {
-      donationId:
-        normalizeId(
-          donation._id
-        ),
-      ngoId:
-        normalizeId(
-          match.ngoId
-        ),
-    }
-  );
+  io.to(`donation:${normalizeId(donation._id)}`).emit('match_declined', {
+    donationId: normalizeId(donation._id),
+    ngoId: normalizeId(match.ngoId),
+  });
 };
 
 /**
  * Driver assigned to delivery
  */
-const emitDriverAssigned = async (
-  delivery,
-  donation
-) => {
+const emitDriverAssigned = async (delivery, donation) => {
   if (
     !delivery?._id ||
     !delivery?.driverId ||
@@ -353,20 +237,15 @@ const emitDriverAssigned = async (
     return;
   }
 
-  const deliveryId =
-    normalizeId(delivery._id);
+  const deliveryId = normalizeId(delivery._id);
 
-  const driverId =
-    normalizeId(delivery.driverId);
+  const driverId = normalizeId(delivery.driverId);
 
-  const donationId =
-    normalizeId(donation._id);
+  const donationId = normalizeId(donation._id);
 
-  const donorId =
-    normalizeId(donation.donorId);
+  const donorId = normalizeId(donation.donorId);
 
-  const ngoId =
-    normalizeId(donation.matchedNgoId);
+  const ngoId = normalizeId(donation.matchedNgoId);
 
   const io = safeGetIO();
 
@@ -377,33 +256,17 @@ const emitDriverAssigned = async (
       donationId,
     };
 
-    io.to(
-      `donation:${donationId}`
-    ).emit(
-      'driver_assigned',
-      payload
-    );
+    io.to(`donation:${donationId}`).emit('driver_assigned', payload);
 
-    io.to(
-      `user:${donorId}`
-    ).emit(
-      'driver_assigned',
-      payload
-    );
+    io.to(`user:${donorId}`).emit('driver_assigned', payload);
 
-    io.to(
-      `user:${ngoId}`
-    ).emit(
-      'driver_assigned',
-      payload
-    );
+    io.to(`user:${ngoId}`).emit('driver_assigned', payload);
   }
 
   await createAndSendNotification({
     recipientId: donorId,
     title: 'Driver Assigned 🚚',
-    message:
-      'A driver is heading to pick up your surplus donation.',
+    message: 'A driver is heading to pick up your surplus donation.',
     type: 'DELIVERY',
     data: {
       donationId,
@@ -427,11 +290,7 @@ const emitDriverAssigned = async (
 /**
  * Driver en-route event
  */
-const emitDriverEnRoute = (
-  delivery,
-  stage,
-  donationId
-) => {
+const emitDriverEnRoute = (delivery, stage, donationId) => {
   if (!delivery?._id || !donationId) {
     return;
   }
@@ -442,32 +301,17 @@ const emitDriverEnRoute = (
     return;
   }
 
-  io.to(
-    `donation:${normalizeId(
-      donationId
-    )}`
-  ).emit(
-    'driver_en_route',
-    {
-      deliveryId:
-        normalizeId(
-          delivery._id
-        ),
-      stage,
-      status:
-        delivery.status,
-    }
-  );
+  io.to(`donation:${normalizeId(donationId)}`).emit('driver_en_route', {
+    deliveryId: normalizeId(delivery._id),
+    stage,
+    status: delivery.status,
+  });
 };
 
 /**
  * Driver arrived event
  */
-const emitDriverArrived = (
-  delivery,
-  stage,
-  donationId
-) => {
+const emitDriverArrived = (delivery, stage, donationId) => {
   if (!delivery?._id || !donationId) {
     return;
   }
@@ -478,66 +322,39 @@ const emitDriverArrived = (
     return;
   }
 
-  io.to(
-    `donation:${normalizeId(
-      donationId
-    )}`
-  ).emit(
-    'driver_arrived',
-    {
-      deliveryId:
-        normalizeId(
-          delivery._id
-        ),
-      stage,
-      status:
-        delivery.status,
-    }
-  );
+  io.to(`donation:${normalizeId(donationId)}`).emit('driver_arrived', {
+    deliveryId: normalizeId(delivery._id),
+    stage,
+    status: delivery.status,
+  });
 };
 
 /**
  * Pickup confirmed
  */
-const emitPickupConfirmed = async (
-  delivery,
-  donation
-) => {
-  if (
-    !delivery?._id ||
-    !donation?._id ||
-    !donation?.matchedNgoId
-  ) {
+const emitPickupConfirmed = async (delivery, donation) => {
+  if (!delivery?._id || !donation?._id || !donation?.matchedNgoId) {
     return;
   }
 
-  const deliveryId =
-    normalizeId(delivery._id);
+  const deliveryId = normalizeId(delivery._id);
 
-  const donationId =
-    normalizeId(donation._id);
+  const donationId = normalizeId(donation._id);
 
-  const ngoId =
-    normalizeId(donation.matchedNgoId);
+  const ngoId = normalizeId(donation.matchedNgoId);
 
   const io = safeGetIO();
 
   if (io) {
-    io.to(
-      `donation:${donationId}`
-    ).emit(
-      'pickup_confirmed',
-      {
-        deliveryId,
-        donationId,
-      }
-    );
+    io.to(`donation:${donationId}`).emit('pickup_confirmed', {
+      deliveryId,
+      donationId,
+    });
   }
 
   await createAndSendNotification({
     recipientId: ngoId,
-    title:
-      'Food Picked Up! 📦',
+    title: 'Food Picked Up! 📦',
     message:
       'The driver has picked up the food from the donor and is heading your way.',
     type: 'DELIVERY',
@@ -551,14 +368,8 @@ const emitPickupConfirmed = async (
 /**
  * Delivery entered transit
  */
-const emitDeliveryInTransit = (
-  delivery,
-  donation
-) => {
-  if (
-    !delivery?._id ||
-    !donation?._id
-  ) {
+const emitDeliveryInTransit = (delivery, donation) => {
+  if (!delivery?._id || !donation?._id) {
     return;
   }
 
@@ -568,32 +379,16 @@ const emitDeliveryInTransit = (
     return;
   }
 
-  io.to(
-    `donation:${normalizeId(
-      donation._id
-    )}`
-  ).emit(
-    'delivery_in_transit',
-    {
-      deliveryId:
-        normalizeId(
-          delivery._id
-        ),
-      donationId:
-        normalizeId(
-          donation._id
-        ),
-    }
-  );
+  io.to(`donation:${normalizeId(donation._id)}`).emit('delivery_in_transit', {
+    deliveryId: normalizeId(delivery._id),
+    donationId: normalizeId(donation._id),
+  });
 };
 
 /**
  * Delivery completed
  */
-const emitDeliveryCompleted = async (
-  delivery,
-  donation
-) => {
+const emitDeliveryCompleted = async (delivery, donation) => {
   if (
     !delivery?._id ||
     !donation?._id ||
@@ -603,48 +398,33 @@ const emitDeliveryCompleted = async (
     return;
   }
 
-  const deliveryId =
-    normalizeId(delivery._id);
+  const deliveryId = normalizeId(delivery._id);
 
-  const donationId =
-    normalizeId(donation._id);
+  const donationId = normalizeId(donation._id);
 
-  const donorId =
-    normalizeId(donation.donorId);
+  const donorId = normalizeId(donation.donorId);
 
-  const ngoId =
-    normalizeId(donation.matchedNgoId);
+  const ngoId = normalizeId(donation.matchedNgoId);
 
   const io = safeGetIO();
 
   if (io) {
-    io.to(
-      `donation:${donationId}`
-    ).emit(
-      'delivery_completed',
-      {
-        deliveryId,
-        donationId,
-      }
-    );
+    io.to(`donation:${donationId}`).emit('delivery_completed', {
+      deliveryId,
+      donationId,
+    });
 
-    io.to('role:ADMIN').emit(
-      'admin_feed',
-      {
-        type:
-          'DELIVERY_COMPLETED',
-        delivery,
-        donation,
-      }
-    );
+    io.to('role:ADMIN').emit('admin_feed', {
+      type: 'DELIVERY_COMPLETED',
+      delivery,
+      donation,
+    });
   }
 
   await createAndSendNotification({
     recipientId: donorId,
-    title:
-      'Food Delivered! 💚',
-    message:
-      `Your donation "${donation.title}" has been successfully delivered to the shelter!`,
+    title: 'Food Delivered! 💚',
+    message: `Your donation "${donation.title}" has been successfully delivered to the shelter!`,
     type: 'DELIVERY',
     data: {
       donationId,
@@ -654,8 +434,7 @@ const emitDeliveryCompleted = async (
 
   await createAndSendNotification({
     recipientId: ngoId,
-    title:
-      'Delivery Arrived! 📦',
+    title: 'Delivery Arrived! 📦',
     message:
       'The driver has completed delivery. Please verify and confirm receipt.',
     type: 'DELIVERY',
@@ -669,45 +448,29 @@ const emitDeliveryCompleted = async (
 /**
  * Delivery verified by NGO/admin
  */
-const emitDeliveryVerified = async (
-  delivery,
-  donation
-) => {
-  if (
-    !delivery?._id ||
-    !delivery?.driverId ||
-    !donation?._id
-  ) {
+const emitDeliveryVerified = async (delivery, donation) => {
+  if (!delivery?._id || !delivery?.driverId || !donation?._id) {
     return;
   }
 
-  const deliveryId =
-    normalizeId(delivery._id);
+  const deliveryId = normalizeId(delivery._id);
 
-  const donationId =
-    normalizeId(donation._id);
+  const donationId = normalizeId(donation._id);
 
-  const driverId =
-    normalizeId(delivery.driverId);
+  const driverId = normalizeId(delivery.driverId);
 
   const io = safeGetIO();
 
   if (io) {
-    io.to(
-      `donation:${donationId}`
-    ).emit(
-      'delivery_verified',
-      {
-        deliveryId,
-        donationId,
-      }
-    );
+    io.to(`donation:${donationId}`).emit('delivery_verified', {
+      deliveryId,
+      donationId,
+    });
   }
 
   await createAndSendNotification({
     recipientId: driverId,
-    title:
-      'Delivery Verified ⭐',
+    title: 'Delivery Verified ⭐',
     message:
       'The shelter has verified your delivery. Thank you for rescuing food!',
     type: 'DELIVERY',
@@ -721,48 +484,90 @@ const emitDeliveryVerified = async (
 /**
  * Donation nearing expiry
  */
-const emitDonationExpiring = async (
-  donation
-) => {
-  if (
-    !donation?._id ||
-    !donation?.donorId
-  ) {
+const emitDonationExpiring = async (donation) => {
+  if (!donation?._id || !donation?.donorId) {
     return;
   }
 
-  const donationId =
-    normalizeId(donation._id);
+  const donationId = normalizeId(donation._id);
 
-  const donorId =
-    normalizeId(donation.donorId);
+  const donorId = normalizeId(donation.donorId);
 
   const io = safeGetIO();
 
   if (io) {
-    io.to(
-      `donation:${donationId}`
-    ).emit(
-      'donation_expiring',
-      {
-        donationId,
-        expiryTime:
-          donation.perishability
-            ?.expiryTime,
-      }
-    );
+    io.to(`donation:${donationId}`).emit('donation_expiring', {
+      donationId,
+      expiryTime: donation.perishability?.expiryTime,
+    });
   }
 
   await createAndSendNotification({
     recipientId: donorId,
-    title:
-      'Donation Expiring Soon ⏰',
-    message:
-      `Your donation "${donation.title}" has less than 1 hour remaining before expiry.`,
+    title: 'Donation Expiring Soon ⏰',
+    message: `Your donation "${donation.title}" has less than 1 hour remaining before expiry.`,
     type: 'URGENCY',
     data: {
       donationId,
     },
+  });
+};
+/**
+ * Emits live driver location updates to tracking rooms.
+ * Form location data remains safely stored in MongoDB;
+ * this only handles runtime streaming coordinates.
+ */
+const emitDriverLocationUpdate = (
+  deliveryId,
+  donationId,
+  coordinates,
+  heading = 0
+) => {
+  const io = safeGetIO();
+  if (!io) return;
+
+  const normalizedDeliveryId = normalizeId(deliveryId);
+  const normalizedDonationId = normalizeId(donationId);
+
+  const payload = {
+    deliveryId: normalizedDeliveryId,
+    donationId: normalizedDonationId,
+    coordinates, // Expects [longitude, latitude] matching your GeoJSON schema format
+    heading, // Optional bearing angle for map marker rotation
+    updatedAt: new Date(),
+  };
+
+  // Broadcast to anyone listening to this specific delivery room
+  io.to(`delivery:${normalizedDeliveryId}`).emit(
+    'driver_location_updated',
+    payload
+  );
+
+  // Also broadcast to the donation-level tracking room
+  io.to(`donation:${normalizedDonationId}`).emit(
+    'driver_location_updated',
+    payload
+  );
+};
+
+/**
+ * Server-side socket connection listener handler to handle incoming driver pings.
+ * Call this inside your main socket setup (e.g., inside your socket.js configuration).
+ */
+const registerLiveTrackingHandlers = (socket, io) => {
+  // Driver joins a delivery channel to start streaming location
+  socket.on('join_delivery_tracking', ({ deliveryId }) => {
+    if (deliveryId) {
+      socket.join(`delivery:${normalizeId(deliveryId)}`);
+    }
+  });
+
+  // Receive live GPS coordinates from the driver's mobile device
+  socket.on('send_driver_location', (data) => {
+    const { deliveryId, donationId, coordinates, heading } = data;
+    if (deliveryId && coordinates) {
+      emitDriverLocationUpdate(deliveryId, donationId, coordinates, heading);
+    }
   });
 };
 
@@ -780,4 +585,6 @@ module.exports = {
   emitDeliveryCompleted,
   emitDeliveryVerified,
   emitDonationExpiring,
+  emitDriverLocationUpdate, // <-- Added for live map streaming
+  registerLiveTrackingHandlers, // <-- Added for socket connection hooks
 };

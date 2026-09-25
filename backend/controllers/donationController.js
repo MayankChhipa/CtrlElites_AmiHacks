@@ -710,10 +710,67 @@ const getDonationById = async (req, res) => {
     );
   }
 };
+/**
+ * @desc    Get nearby donations for a real-time map view
+ * @route   GET /api/donations/nearby
+ * @query   lng, lat, maxDistance (in kilometers, default 10)
+ */
+ const getNearbyDonations = async (req, res) => {
+  try {
+    const { lng, lat, maxDistance = 10 } = req.query;
+
+    const longitude = Number(lng);
+    const latitude = Number(lat);
+
+    if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid longitude (lng) and latitude (lat) query parameters are required.',
+      });
+    }
+
+    // Convert kilometers to meters for MongoDB $geoWithin / $nearSphere
+    const maxDistanceMeters = Number(maxDistance) * 1000;
+
+    const donations = await Donation.find({
+      status: 'PENDING_MATCH',
+      'pickupLocation.location': {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [longitude, latitude],
+          },
+          $maxDistance: maxDistanceMeters,
+        },
+      },
+    })
+      .populate('donorId', 'name phone address')
+      .sort({ createdAt: -1 });
+
+    const enriched = donations.map((donation) =>
+      enrichDonationWithUrgency(donation)
+    );
+
+    const sanitized = sanitizeDonationsList(enriched, req.user);
+
+    return res.status(200).json({
+      success: true,
+      count: sanitized.length,
+      donations: sanitized,
+    });
+  } catch (error) {
+    return sendServerError(
+      res,
+      error,
+      'Get nearby donations error'
+    );
+  }
+};
 
 module.exports = {
   createDonation,
   getMyDonations,
   getAllDonations,
   getDonationById,
+  getNearbyDonations, // <-- Add this
 };
